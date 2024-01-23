@@ -1,0 +1,38 @@
+<a href="#" hx-get="/library" hx-target="#content" class="btn m-1">
+    <svg class="bi" width="32" height="32" fill="currentColor">
+        <use xlink:href="/assets/bootstrap-icons.svg#arrow-left"/>
+    </svg>
+    Back
+</a>
+
+<div style="display: flex; flex-direction: row; flex-wrap: wrap;">
+{% for album in albums %}
+<div class="card m-2 shadow" style="max-width: 256px; min-width: 256px;">
+    {% match album.art %}
+    {% when Some(art) %}
+    <a href="#">
+        <img src="data:image/;base64,{{art}}" class="card-img-top">
+    </a>
+    {% when None %}
+    <a href="#">
+        <img src="/assets/lp.png" class="card-img-top">
+    </a>
+    {% endmatch %}
+
+    <div class="card-body">
+        <h5 class="card-title">{{album.album_name}}</h5>
+        <p class="card-text">
+            {% match album.year %}
+            {% when Some(year) %}
+            {{year}}
+            {% when None %}
+            {% endmatch %}
+            &nbsp;
+        </p>
+        <a href="#" class="btn btn-primary">Play</a>
+        <a href="#" class="btn btn-primary">Append</a>
+        <a href="#" class="btn btn-primary">Songs</a>
+    </div>
+</div>
+{% endfor %}
+</div>

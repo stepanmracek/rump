@@ -1,0 +1,41 @@
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>RUMP</title>
+    <script src="/assets/htmx.min.js"></script>
+    <link href="/assets/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body>
+    <nav class="navbar bg-primary navbar-expand" data-bs-theme="dark">
+        <div class="container-fluid">
+            <div class="navbar-brand">RUMP</div>
+            <div class="ms-5 me-5 text-white">
+                <strong>Elder - Omens</strong><br>
+                <span>Omens (2020)</span>
+            </div>
+            <div class="btn-group me-auto" role="group">
+                <button type="button" class="btn">
+                    <svg class="bi" width="32" height="32" fill="currentColor">
+                        <use xlink:href="/assets/bootstrap-icons.svg#skip-backward-fill" />
+                    </svg>
+                </button>
+                <button type="button" class="btn">
+                    <svg class="bi" width="32" height="32" fill="currentColor">
+                        <use xlink:href="/assets/bootstrap-icons.svg#pause" />
+                    </svg>
+                </button>
+                <button type="button" class="btn">
+                    <svg class="bi" width="32" height="32" fill="currentColor">
+                        <use xlink:href="/assets/bootstrap-icons.svg#skip-forward-fill" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </nav>
+    <div id="content" hx-get="/library" hx-trigger="load"></div>
+</body>
+
+</html>
