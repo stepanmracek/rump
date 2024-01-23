@@ -1,4 +1,5 @@
 use base64::{prelude::BASE64_STANDARD, Engine};
+use mpd_client::responses::PlayState;
 
 pub struct Album {
     pub album_name: String,
@@ -6,18 +7,31 @@ pub struct Album {
     pub art: Option<String>,
 }
 
-async fn connect() -> Result<mpd_client::Client, String> {
+#[derive(Debug)]
+pub struct Status {
+    pub title: Option<String>,
+    pub artist: Option<String>,
+    pub album: Option<String>,
+    pub year: Option<i32>,
+    pub play_state: mpd_client::responses::PlayState,
+    pub has_next: bool,
+    pub has_prev: bool,
+    pub has_song: bool,
+}
+
+pub async fn connect() -> Result<(mpd_client::Client, mpd_client::client::ConnectionEvents), String>
+{
     let connection = tokio::net::TcpStream::connect("localhost:6600")
         .await
         .map_err(|e| e.to_string());
-    let (mpd_client, _) = mpd_client::Client::connect(connection?)
+    let (mpd_client, connection_events) = mpd_client::Client::connect(connection?)
         .await
         .map_err(|e| e.to_string())?;
-    Ok(mpd_client)
+    Ok((mpd_client, connection_events))
 }
 
 pub async fn get_artists(name_filter: Option<String>) -> Result<Vec<String>, String> {
-    let mpd_client = connect().await?;
+    let (mpd_client, _) = connect().await?;
     let cmd = mpd_client::commands::List::new(mpd_client::tag::Tag::Artist);
     let response = mpd_client
         .command(cmd)
@@ -63,8 +77,15 @@ pub async fn get_songs(
     Ok(result)
 }
 
+pub fn get_year(song: &mpd_client::responses::Song) -> Option<i32> {
+    song.tags
+        .get(&mpd_client::tag::Tag::Date)
+        .and_then(|tag_values| tag_values.first())
+        .and_then(|d| d.parse::<i32>().ok())
+}
+
 pub async fn get_albums(artist: &str) -> Result<Vec<Album>, String> {
-    let mpd_client = connect().await?;
+    let (mpd_client, _) = connect().await?;
     let response = mpd_client
         .command(
             mpd_client::commands::List::new(mpd_client::tag::Tag::Album).filter(
@@ -83,10 +104,7 @@ pub async fn get_albums(artist: &str) -> Result<Vec<Album>, String> {
     for album_name in album_names {
         let songs = get_songs(&mpd_client, artist, &album_name).await?;
         let first_song = songs.first();
-        let year = first_song
-            .and_then(|song| song.tags.get(&mpd_client::tag::Tag::Date))
-            .and_then(|tag_values| tag_values.first())
-            .and_then(|d| d.parse::<i32>().ok());
+        let year = first_song.and_then(|song| get_year(song));
 
         let art = if let Some(first_song) = first_song {
             mpd_client
@@ -112,4 +130,85 @@ pub async fn get_albums(artist: &str) -> Result<Vec<Album>, String> {
     }
     albums.sort_by_key(|album| album.year);
     Ok(albums)
+}
+
+pub async fn get_status(mpd_client: &mpd_client::Client) -> Result<Status, String> {
+    let (status, current_song) = mpd_client
+        .command_list((
+            mpd_client::commands::Status,
+            mpd_client::commands::CurrentSong,
+        ))
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let play_state = status.state;
+    let has_song = status.current_song.is_some();
+    let has_next = play_state != PlayState::Stopped
+        && status
+            .current_song
+            .is_some_and(|current_song| current_song.0 .0 + 1 < status.playlist_length);
+    let has_prev = play_state != PlayState::Stopped && has_song;
+
+    if let Some(current_song) = current_song {
+        let title = current_song.song.title().and_then(|s| Some(s.to_string()));
+        let artist = current_song
+            .song
+            .artists()
+            .first()
+            .and_then(|s| Some(s.to_string()));
+        let album = current_song.song.album().and_then(|s| Some(s.to_string()));
+        let year = get_year(&current_song.song);
+
+        Ok(Status {
+            title,
+            artist,
+            album,
+            year,
+            play_state,
+            has_next,
+            has_prev,
+            has_song,
+        })
+    } else {
+        Ok(Status {
+            title: None,
+            artist: None,
+            album: None,
+            year: None,
+            play_state,
+            has_next,
+            has_prev,
+            has_song,
+        })
+    }
+}
+
+pub async fn prev() -> Result<(), String> {
+    let (c, _) = connect().await?;
+    c.command(mpd_client::commands::Previous)
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+pub async fn next() -> Result<(), String> {
+    let (c, _) = connect().await?;
+    c.command(mpd_client::commands::Next)
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+pub async fn pause(pause: bool) -> Result<(), String> {
+    let (c, _) = connect().await?;
+    c.command(mpd_client::commands::SetPause(pause))
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+pub async fn play() -> Result<(), String> {
+    let (c, _) = connect().await?;
+    c.command(mpd_client::commands::Play::current()).await.map_err(|e| e.to_string())?;       
+    Ok(())
 }

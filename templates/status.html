@@ -1,0 +1,50 @@
+<div id="status" style="display: flex;" class="me-auto">
+    <div class="ms-2 btn-group me-auto" role="group">
+        <button type="button" class="btn btn-outline-light" {% if !status.has_prev %}disabled{% endif %} hx-get="/control/prev">
+            <svg class="bi" width="32" height="32" fill="currentColor">
+                <use xlink:href="/assets/bootstrap-icons.svg#skip-backward-fill" />
+            </svg>
+        </button>
+        <button type="button" class="btn btn-outline-light" hx-swap="none"
+                {% if !status.has_song %}disabled{% endif %}
+                {% match status.play_state %}
+                {% when mpd_client::responses::PlayState::Stopped %}
+                hx-get="/control/play"
+                {% when mpd_client::responses::PlayState::Playing %}
+                hx-get="/control/pause"
+                {% when mpd_client::responses::PlayState::Paused %}
+                hx-get="/control/unpause"
+                {% endmatch %}
+        >
+            <svg class="bi" width="32" height="32" fill="currentColor">
+                {% match status.play_state %}
+                {% when mpd_client::responses::PlayState::Stopped %}
+                <use xlink:href="/assets/bootstrap-icons.svg#play-fill" />
+                {% when mpd_client::responses::PlayState::Playing %}
+                <use xlink:href="/assets/bootstrap-icons.svg#pause-fill" />
+                {% when mpd_client::responses::PlayState::Paused %}
+                <use xlink:href="/assets/bootstrap-icons.svg#play-fill" />
+                {% endmatch %}
+            </svg>
+        </button>
+        <button type="button" class="btn btn-outline-light" {% if !status.has_next %}disabled{% endif %} hx-get="/control/next">
+            <svg class="bi" width="32" height="32" fill="currentColor">
+                <use xlink:href="/assets/bootstrap-icons.svg#skip-forward-fill" />
+            </svg>
+        </button>
+    </div>
+    {% if status.has_song %}
+    <div class="ms-2 text-white" style="min-width: 150px;">
+        <strong>
+            {% match status.artist %}{% when Some with (val) %}{{ val }}{% when None %}{% endmatch %}
+            -
+            {% match status.title %}{% when Some with (val) %}{{ val }}{% when None %}{% endmatch %}
+        </strong>
+        <br>
+        <span>
+            {% match status.album %}{% when Some with (val) %}{{ val }}{% when None %}{% endmatch %}
+            {% match status.year %}{% when Some with (val) %}({{ val }}){% when None %}{% endmatch %}
+        </span>
+    </div>
+    {% endif %}
+</div>
