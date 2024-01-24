@@ -1,0 +1,22 @@
+<div id="playlist-songs">
+    <div class="list-group p-3">
+        {% for song in songs %}
+        <a href="#" class="list-group-item list-group-item-action" hx-get="/control/play/{{song.id}}" hx-swap="none">
+            <svg class="bi" width="32" height="32" fill="currentColor">
+                {%if song.playing %}
+                <use xlink:href="assets/bootstrap-icons.svg#music-note"/>
+                {% endif %}
+            </svg>          
+            {{song.artist}} - {{song.title}}
+        </a>
+        {% endfor %}
+        {%if songs.is_empty() %}
+        <div class="list-group-item">( Empty )</div>       
+        {% endif %}
+    </div>
+    {%if !songs.is_empty() %}
+    <div class="ps-3 pe-3" style="display: flex; justify-content: right;">
+        <a href="#" class="btn btn-danger" hx-get="/control/playlist/clear" hx-swap="none">Clear</a>
+    </div>
+    {% endif %}
+</div>

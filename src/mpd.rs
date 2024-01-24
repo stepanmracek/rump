@@ -7,7 +7,6 @@ pub struct Album {
     pub art: Option<String>,
 }
 
-#[derive(Debug)]
 pub struct Status {
     pub title: Option<String>,
     pub artist: Option<String>,
@@ -17,6 +16,13 @@ pub struct Status {
     pub has_next: bool,
     pub has_prev: bool,
     pub has_song: bool,
+}
+
+pub struct SongInQueue {
+    pub id: u64,
+    pub title: String,
+    pub artist: String,
+    pub playing: bool,
 }
 
 pub async fn connect() -> Result<(mpd_client::Client, mpd_client::client::ConnectionEvents), String>
@@ -104,7 +110,7 @@ pub async fn get_albums(artist: &str) -> Result<Vec<Album>, String> {
     for album_name in album_names {
         let songs = get_songs(&mpd_client, artist, &album_name).await?;
         let first_song = songs.first();
-        let year = first_song.and_then(|song| get_year(song));
+        let year = first_song.and_then(get_year);
 
         let art = if let Some(first_song) = first_song {
             mpd_client
@@ -150,13 +156,9 @@ pub async fn get_status(mpd_client: &mpd_client::Client) -> Result<Status, Strin
     let has_prev = play_state != PlayState::Stopped && has_song;
 
     if let Some(current_song) = current_song {
-        let title = current_song.song.title().and_then(|s| Some(s.to_string()));
-        let artist = current_song
-            .song
-            .artists()
-            .first()
-            .and_then(|s| Some(s.to_string()));
-        let album = current_song.song.album().and_then(|s| Some(s.to_string()));
+        let title = current_song.song.title().map(|s| s.to_string());
+        let artist = current_song.song.artists().first().map(|s| s.to_string());
+        let album = current_song.song.album().map(|s| s.to_string());
         let year = get_year(&current_song.song);
 
         Ok(Status {
@@ -209,6 +211,53 @@ pub async fn pause(pause: bool) -> Result<(), String> {
 
 pub async fn play() -> Result<(), String> {
     let (c, _) = connect().await?;
-    c.command(mpd_client::commands::Play::current()).await.map_err(|e| e.to_string())?;       
+    c.command(mpd_client::commands::Play::current())
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+pub async fn play_song(song_id: u64) -> Result<(), String> {
+    let (c, _) = connect().await?;
+    c.command(mpd_client::commands::Play::song(
+        mpd_client::commands::SongId(song_id),
+    ))
+    .await
+    .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+pub async fn get_playlist(mpd_client: &mpd_client::Client) -> Result<Vec<SongInQueue>, String> {
+    let (queue, current_song) = mpd_client
+        .command_list((
+            mpd_client::commands::Queue,
+            mpd_client::commands::CurrentSong,
+        ))
+        .await
+        .map_err(|e| e.to_string())?;
+
+    Ok(queue
+        .iter()
+        .map(|song| SongInQueue {
+            id: song.id.0,
+            artist: song
+                .song
+                .artists()
+                .first()
+                .map(|s| s.to_string())
+                .unwrap_or_default(),
+            title: song.song.title().map(|s| s.to_string()).unwrap_or_default(),
+            playing: current_song
+                .as_ref()
+                .is_some_and(|current_song| current_song.id == song.id),
+        })
+        .collect())
+}
+
+pub async fn clear_playlist() -> Result<(), String> {
+    let (c, _) = connect().await?;
+    c.command(mpd_client::commands::ClearQueue)
+        .await
+        .map_err(|e| e.to_string())?;
     Ok(())
 }
