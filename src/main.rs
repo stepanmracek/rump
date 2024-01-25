@@ -26,6 +26,7 @@ async fn main() {
         .route("/library", get(get_library))
         .route("/artists", get(get_artists))
         .route("/albums/:artist", get(get_albums))
+        .route("/artist/:artist/album/:album/songs", get(get_songs))
         .route("/status", get(get_status))
         .route("/control/play", get(control_play))
         .route("/control/play/:song_id", get(control_play_song))
@@ -49,17 +50,24 @@ async fn get_library() -> Result<t::HtmlTemplate<t::LibraryTemplate>, String> {
 
 async fn get_artists(
     Query(artists_search_query): Query<ArtistsSearchQuery>,
-) -> Result<t::HtmlTemplate<t::ArtistsTemplate>, String> {
+) -> Result<impl IntoResponse, String> {
     let artists = mpd::get_artists(artists_search_query.q).await?;
     let template = t::ArtistsTemplate { artists };
     Ok(t::HtmlTemplate(template))
 }
 
-async fn get_albums(
-    Path(artist): Path<String>,
-) -> Result<t::HtmlTemplate<t::AlbumsTemplate>, String> {
+async fn get_albums(Path(artist): Path<String>) -> Result<impl IntoResponse, String> {
     let albums = mpd::get_albums(&artist).await?;
-    let template = t::AlbumsTemplate { albums };
+    let template = t::AlbumsTemplate { artist, albums };
+    Ok(t::HtmlTemplate(template))
+}
+
+async fn get_songs(
+    Path((artist, album)): Path<(String, String)>,
+) -> Result<impl IntoResponse, String> {
+    let (mpd_client, _) = mpd::connect().await?;
+    let songs = mpd::get_songs(&mpd_client, &artist, &album).await?;
+    let template = t::AlbumSongsTemplate { artist, album, songs };
     Ok(t::HtmlTemplate(template))
 }
 

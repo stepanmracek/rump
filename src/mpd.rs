@@ -25,6 +25,14 @@ pub struct SongInQueue {
     pub playing: bool,
 }
 
+pub struct Song {
+    pub url: String,
+    pub artist: String,
+    pub album: String,
+    pub title: String,
+    pub year: Option<i32>,
+}
+
 pub async fn connect() -> Result<(mpd_client::Client, mpd_client::client::ConnectionEvents), String>
 {
     let connection = tokio::net::TcpStream::connect("localhost:6600")
@@ -61,7 +69,7 @@ pub async fn get_songs(
     mpd_client: &mpd_client::Client,
     artist: &str,
     album: &str,
-) -> Result<Vec<mpd_client::responses::Song>, String> {
+) -> Result<Vec<Song>, String> {
     let cmd = mpd_client::commands::Find::new(
         mpd_client::filter::Filter::new(
             mpd_client::tag::Tag::Artist,
@@ -80,14 +88,29 @@ pub async fn get_songs(
         .map_err(|command_error| command_error.to_string())?;
 
     result.sort_by_key(|song| song.number());
-    Ok(result)
+    Ok(result
+        .into_iter()
+        .map(|song| Song {
+            artist: get_single_tag_value(&song, &mpd_client::tag::Tag::Artist).unwrap_or_default(),
+            album: get_single_tag_value(&song, &mpd_client::tag::Tag::Album).unwrap_or_default(),
+            title: get_single_tag_value(&song, &mpd_client::tag::Tag::Title).unwrap_or_default(),
+            year: get_single_tag_value(&song, &mpd_client::tag::Tag::Date),
+            url: song.url,
+        })
+        .collect())
 }
 
-pub fn get_year(song: &mpd_client::responses::Song) -> Option<i32> {
+pub fn get_single_tag_value<T>(
+    song: &mpd_client::responses::Song,
+    tag: &mpd_client::tag::Tag,
+) -> Option<T>
+where
+    T: std::str::FromStr,
+{
     song.tags
-        .get(&mpd_client::tag::Tag::Date)
+        .get(tag)
         .and_then(|tag_values| tag_values.first())
-        .and_then(|d| d.parse::<i32>().ok())
+        .and_then(|d| d.parse::<T>().ok())
 }
 
 pub async fn get_albums(artist: &str) -> Result<Vec<Album>, String> {
@@ -110,7 +133,7 @@ pub async fn get_albums(artist: &str) -> Result<Vec<Album>, String> {
     for album_name in album_names {
         let songs = get_songs(&mpd_client, artist, &album_name).await?;
         let first_song = songs.first();
-        let year = first_song.and_then(get_year);
+        let year = first_song.and_then(|song| song.year);
 
         let art = if let Some(first_song) = first_song {
             mpd_client
@@ -159,7 +182,7 @@ pub async fn get_status(mpd_client: &mpd_client::Client) -> Result<Status, Strin
         let title = current_song.song.title().map(|s| s.to_string());
         let artist = current_song.song.artists().first().map(|s| s.to_string());
         let album = current_song.song.album().map(|s| s.to_string());
-        let year = get_year(&current_song.song);
+        let year = get_single_tag_value(&current_song.song, &mpd_client::tag::Tag::Date);
 
         Ok(Status {
             title,

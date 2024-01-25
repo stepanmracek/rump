@@ -1,23 +1,23 @@
-<a href="#" hx-get="/library" hx-target="#content" class="btn m-1">
-    <svg class="bi" width="32" height="32" fill="currentColor">
-        <use xlink:href="/assets/bootstrap-icons.svg#arrow-left"/>
-    </svg>
-    Back
-</a>
+<ul class="nav nav-tabs pt-3 ps-3">
+    <li class="nav-item">
+        <a href="#" class="nav-link active" hx-get="/library" hx-target="#content">Library</a>
+    </li>
+    <li class="nav-item">
+        <a href="#" class="nav-link" hx-get="/playlist" hx-target="#content">Playlist</a>
+    </li>
+</ul>
 
 <div style="display: flex; flex-direction: row; flex-wrap: wrap;">
 {% for album in albums %}
 <div class="card m-2 shadow" style="max-width: 256px; min-width: 256px;">
-    {% match album.art %}
-    {% when Some(art) %}
-    <a href="#">
+    <a href="#" hx-get="/artist/{{artist}}/album/{{album.album_name}}/songs" hx-target="#content">
+        {% match album.art %}
+        {% when Some(art) %}
         <img src="data:image/;base64,{{art}}" class="card-img-top">
-    </a>
-    {% when None %}
-    <a href="#">
+        {% when None %}
         <img src="/assets/lp.png" class="card-img-top">
+        {% endmatch %}
     </a>
-    {% endmatch %}
 
     <div class="card-body">
         <h5 class="card-title">{{album.album_name}}</h5>
@@ -31,7 +31,9 @@
         </p>
         <a href="#" class="btn btn-primary">Play</a>
         <a href="#" class="btn btn-primary">Append</a>
-        <a href="#" class="btn btn-primary">Songs</a>
+        <a href="#" class="btn btn-primary" hx-get="/artist/{{artist}}/album/{{album.album_name}}/songs" hx-target="#content">
+            Songs
+        </a>
     </div>
 </div>
 {% endfor %}
