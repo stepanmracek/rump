@@ -272,4 +272,28 @@ impl Mpd {
             .await?;
         Ok(())
     }
+
+    pub async fn append_album_to_playlist(&self, artist: &str, album: &str) -> Result<()> {
+        let songs = self.get_songs(artist, album).await?;
+        let commands = songs
+            .iter()
+            .map(|song| mpd_client::commands::Add::uri(&song.url))
+            .collect::<Vec<_>>();
+        self.mpd_client.command_list(commands).await?;
+        Ok(())
+    }
+
+    pub async fn play_album(&self, artist: &str, album: &str) -> Result<()> {
+        self.clear_playlist().await?;
+        let songs = self.get_songs(artist, album).await?;
+        let commands = songs
+            .iter()
+            .map(|song| mpd_client::commands::Add::uri(&song.url))
+            .collect::<Vec<_>>();
+        let ids = self.mpd_client.command_list(commands).await?;
+        if let Some(id) = ids.first() {
+            self.play_song(id.0).await?;
+        }
+        Ok(())
+    }
 }

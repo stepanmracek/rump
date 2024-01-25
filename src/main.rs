@@ -39,6 +39,8 @@ async fn main() {
         .route("/control/next", get(control_next))
         .route("/playlist", get(get_playlist))
         .route("/playlist/songs", get(get_playlist_songs))
+        .route("/playlist/append/artist/:artist/album/:album", get(append_album))
+        .route("/playlist/play/artist/:artist/album/:album", get(play_album))
         .nest_service("/assets", ServeDir::new("assets"));
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8000").await.unwrap();
     axum::serve(listener, app).await.unwrap();
@@ -220,6 +222,20 @@ async fn handle_ws_playlist(mut socket: WebSocket) {
 async fn get_playlist() -> impl IntoResponse {
     let template = t::PlaylistTemplate;
     t::HtmlTemplate(template)
+}
+
+async fn append_album(
+    Path((artist, album)): Path<(String, String)>,
+) -> Result<impl IntoResponse, AppError> {
+    Mpd::connect().await?.append_album_to_playlist(&artist, &album).await?;
+    Ok(())
+}
+
+async fn play_album(
+    Path((artist, album)): Path<(String, String)>,
+) -> Result<impl IntoResponse, AppError> {
+    Mpd::connect().await?.play_album(&artist, &album).await?;
+    Ok(())
 }
 
 struct AppError(anyhow::Error);
