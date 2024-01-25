@@ -1,3 +1,4 @@
+use anyhow::Result;
 use base64::{prelude::BASE64_STANDARD, Engine};
 use mpd_client::responses::PlayState;
 
@@ -52,29 +53,21 @@ where
 }
 
 impl Mpd {
-    pub async fn connect() -> Result<Self, String> {
-        let connection = tokio::net::TcpStream::connect("localhost:6600")
-            .await
-            .map_err(|e| e.to_string());
-        let (mpd_client, connection_events) = mpd_client::Client::connect(connection?)
-            .await
-            .map_err(|e| e.to_string())?;
+    pub async fn connect() -> Result<Self> {
+        let connection = tokio::net::TcpStream::connect("localhost:6600").await;
+        let (mpd_client, connection_events) = mpd_client::Client::connect(connection?).await?;
         Ok(Self {
             mpd_client,
             connection_events,
         })
     }
 
-    pub async fn get_artists(&self, name_filter: Option<String>) -> Result<Vec<String>, String> {
+    pub async fn get_artists(&self, name_filter: Option<String>) -> Result<Vec<String>> {
         let cmd = mpd_client::commands::List::new(mpd_client::tag::Tag::Artist);
-        let response = self
-            .mpd_client
-            .command(cmd)
-            .await
-            .map_err(|command_error| command_error.to_string());
+        let response = self.mpd_client.command(cmd).await?;
 
         let name_filter = name_filter.map(|v| v.to_lowercase());
-        Ok(response?
+        Ok(response
             .into_iter()
             .filter(|artist| {
                 if let Some(name_filter) = &name_filter {
@@ -86,7 +79,7 @@ impl Mpd {
             .collect::<Vec<_>>())
     }
 
-    pub async fn get_songs(&self, artist: &str, album: &str) -> Result<Vec<Song>, String> {
+    pub async fn get_songs(&self, artist: &str, album: &str) -> Result<Vec<Song>> {
         let cmd = mpd_client::commands::Find::new(
             mpd_client::filter::Filter::new(
                 mpd_client::tag::Tag::Artist,
@@ -99,11 +92,7 @@ impl Mpd {
                 album,
             )),
         );
-        let mut result = self
-            .mpd_client
-            .command(cmd)
-            .await
-            .map_err(|command_error| command_error.to_string())?;
+        let mut result = self.mpd_client.command(cmd).await?;
 
         result.sort_by_key(|song| song.number());
         Ok(result
@@ -121,7 +110,7 @@ impl Mpd {
             .collect())
     }
 
-    pub async fn get_albums(&self, artist: &str) -> Result<Vec<Album>, String> {
+    pub async fn get_albums(&self, artist: &str) -> Result<Vec<Album>> {
         let response = self
             .mpd_client
             .command(
@@ -133,8 +122,7 @@ impl Mpd {
                     ),
                 ),
             )
-            .await
-            .map_err(|command_error| command_error.to_string())?;
+            .await?;
 
         let album_names = response.into_iter().collect::<Vec<String>>();
         let mut albums = vec![];
@@ -169,15 +157,14 @@ impl Mpd {
         Ok(albums)
     }
 
-    pub async fn get_status(&self) -> Result<Status, String> {
+    pub async fn get_status(&self) -> Result<Status> {
         let (status, current_song) = self
             .mpd_client
             .command_list((
                 mpd_client::commands::Status,
                 mpd_client::commands::CurrentSong,
             ))
-            .await
-            .map_err(|e| e.to_string())?;
+            .await?;
 
         let play_state = status.state;
         let has_song = status.current_song.is_some();
@@ -217,52 +204,49 @@ impl Mpd {
         }
     }
 
-    pub async fn prev(&self) -> Result<(), String> {
+    pub async fn prev(&self) -> Result<()> {
         self.mpd_client
             .command(mpd_client::commands::Previous)
-            .await
-            .map_err(|e| e.to_string())
+            .await?;
+        Ok(())
     }
 
-    pub async fn next(&self) -> Result<(), String> {
-        self.mpd_client
-            .command(mpd_client::commands::Next)
-            .await
-            .map_err(|e| e.to_string())
+    pub async fn next(&self) -> Result<()> {
+        self.mpd_client.command(mpd_client::commands::Next).await?;
+        Ok(())
     }
 
-    pub async fn pause(&self, pause: bool) -> Result<(), String> {
+    pub async fn pause(&self, pause: bool) -> Result<()> {
         self.mpd_client
             .command(mpd_client::commands::SetPause(pause))
-            .await
-            .map_err(|e| e.to_string())
+            .await?;
+        Ok(())
     }
 
-    pub async fn play(&self) -> Result<(), String> {
+    pub async fn play(&self) -> Result<()> {
         self.mpd_client
             .command(mpd_client::commands::Play::current())
-            .await
-            .map_err(|e| e.to_string())
+            .await?;
+        Ok(())
     }
 
-    pub async fn play_song(&self, song_id: u64) -> Result<(), String> {
+    pub async fn play_song(&self, song_id: u64) -> Result<()> {
         self.mpd_client
             .command(mpd_client::commands::Play::song(
                 mpd_client::commands::SongId(song_id),
             ))
-            .await
-            .map_err(|e| e.to_string())
+            .await?;
+        Ok(())
     }
 
-    pub async fn get_playlist(&self) -> Result<Vec<SongInQueue>, String> {
+    pub async fn get_playlist(&self) -> Result<Vec<SongInQueue>> {
         let (queue, current_song) = self
             .mpd_client
             .command_list((
                 mpd_client::commands::Queue,
                 mpd_client::commands::CurrentSong,
             ))
-            .await
-            .map_err(|e| e.to_string())?;
+            .await?;
 
         Ok(queue
             .iter()
@@ -282,11 +266,10 @@ impl Mpd {
             .collect())
     }
 
-    pub async fn clear_playlist(&self) -> Result<(), String> {
+    pub async fn clear_playlist(&self) -> Result<()> {
         self.mpd_client
             .command(mpd_client::commands::ClearQueue)
-            .await
-            .map_err(|e| e.to_string())?;
+            .await?;
         Ok(())
     }
 }
