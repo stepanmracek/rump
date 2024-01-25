@@ -1,4 +1,4 @@
-use crate::mpd::{Album, Status, SongInQueue, Song};
+use crate::mpd::{Album, Song, SongInQueue, Status};
 use askama::Template;
 use axum::{
     http::StatusCode,
@@ -11,9 +11,7 @@ pub struct IndexTemplate;
 
 #[derive(Template)]
 #[template(path = "library.html")]
-pub struct LibraryTemplate {
-    pub artists: Vec<String>,
-}
+pub struct LibraryTemplate;
 
 #[derive(Template)]
 #[template(path = "artists.html")]
@@ -30,7 +28,7 @@ pub struct AlbumsTemplate {
 
 #[derive(Template)]
 #[template(path = "status.html")]
-pub struct StatusTemplate{
+pub struct StatusTemplate {
     pub status: Status,
 }
 

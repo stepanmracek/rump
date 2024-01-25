@@ -9,6 +9,7 @@ use axum::{
     routing::get,
     Router,
 };
+use mpd::Mpd;
 use mpd_client::client::{ConnectionEvent, Subsystem};
 use serde::Deserialize;
 use templates as t;
@@ -43,21 +44,23 @@ async fn main() {
 }
 
 async fn get_library() -> Result<t::HtmlTemplate<t::LibraryTemplate>, String> {
-    let artists = mpd::get_artists(None).await?;
-    let template = t::LibraryTemplate { artists };
+    let template = t::LibraryTemplate;
     Ok(t::HtmlTemplate(template))
 }
 
 async fn get_artists(
     Query(artists_search_query): Query<ArtistsSearchQuery>,
 ) -> Result<impl IntoResponse, String> {
-    let artists = mpd::get_artists(artists_search_query.q).await?;
+    let artists = Mpd::connect()
+        .await?
+        .get_artists(artists_search_query.q)
+        .await?;
     let template = t::ArtistsTemplate { artists };
     Ok(t::HtmlTemplate(template))
 }
 
 async fn get_albums(Path(artist): Path<String>) -> Result<impl IntoResponse, String> {
-    let albums = mpd::get_albums(&artist).await?;
+    let albums = Mpd::connect().await?.get_albums(&artist).await?;
     let template = t::AlbumsTemplate { artist, albums };
     Ok(t::HtmlTemplate(template))
 }
@@ -65,9 +68,12 @@ async fn get_albums(Path(artist): Path<String>) -> Result<impl IntoResponse, Str
 async fn get_songs(
     Path((artist, album)): Path<(String, String)>,
 ) -> Result<impl IntoResponse, String> {
-    let (mpd_client, _) = mpd::connect().await?;
-    let songs = mpd::get_songs(&mpd_client, &artist, &album).await?;
-    let template = t::AlbumSongsTemplate { artist, album, songs };
+    let songs = Mpd::connect().await?.get_songs(&artist, &album).await?;
+    let template = t::AlbumSongsTemplate {
+        artist,
+        album,
+        songs,
+    };
     Ok(t::HtmlTemplate(template))
 }
 
@@ -80,11 +86,8 @@ async fn get_status(ws: WebSocketUpgrade) -> impl IntoResponse {
     ws.on_upgrade(handle_ws_status)
 }
 
-async fn send_mpd_status(
-    mpd_client: &mpd_client::Client,
-    socket: &mut WebSocket,
-) -> Result<(), String> {
-    let mpd_status = mpd::get_status(mpd_client).await;
+async fn send_mpd_status(mpd: &mut Mpd, socket: &mut WebSocket) -> Result<(), String> {
+    let mpd_status = mpd.get_status().await;
     match mpd_status {
         Ok(mpd_status) => {
             let template = t::StatusTemplate { status: mpd_status }
@@ -105,16 +108,16 @@ async fn send_mpd_status(
 }
 
 async fn handle_ws_status(mut socket: WebSocket) {
-    let connection = mpd::connect().await;
-    if connection.is_err() {
+    let mpd = Mpd::connect().await;
+    if mpd.is_err() {
         return;
     }
-    let (mpd_client, mut connection_events) = connection.unwrap();
-    if send_mpd_status(&mpd_client, &mut socket).await.is_err() {
+    let mut mpd = mpd.unwrap();
+    if send_mpd_status(&mut mpd, &mut socket).await.is_err() {
         return;
     }
     loop {
-        let event = connection_events.next().await;
+        let event = mpd.connection_events.next().await;
         if event.is_none() {
             return;
         }
@@ -123,7 +126,7 @@ async fn handle_ws_status(mut socket: WebSocket) {
         match event {
             ConnectionEvent::SubsystemChange(Subsystem::Player)
             | ConnectionEvent::SubsystemChange(Subsystem::Queue) => {
-                if send_mpd_status(&mpd_client, &mut socket).await.is_err() {
+                if send_mpd_status(&mut mpd, &mut socket).await.is_err() {
                     return;
                 }
             }
@@ -133,43 +136,40 @@ async fn handle_ws_status(mut socket: WebSocket) {
     }
 }
 
-async fn control_play() {
-    let _ = mpd::play().await;
+async fn control_play() -> Result<(), String> {
+    Mpd::connect().await?.play().await
 }
 
-async fn control_play_song(Path(song_id): Path<u64>) {
-    let _ = mpd::play_song(song_id).await;
+async fn control_play_song(Path(song_id): Path<u64>) -> Result<(), String> {
+    Mpd::connect().await?.play_song(song_id).await
 }
 
-async fn control_pause() {
-    let _ = mpd::pause(true).await;
+async fn control_pause() -> Result<(), String> {
+    Mpd::connect().await?.pause(true).await
 }
 
-async fn control_unpause() {
-    let _ = mpd::pause(false).await;
+async fn control_unpause() -> Result<(), String> {
+    Mpd::connect().await?.pause(false).await
 }
 
-async fn control_prev() {
-    let _ = mpd::prev().await;
+async fn control_prev() -> Result<(), String> {
+    Mpd::connect().await?.prev().await
 }
 
-async fn control_next() {
-    let _ = mpd::next().await;
+async fn control_next() -> Result<(), String> {
+    Mpd::connect().await?.next().await
 }
 
-async fn clear_playlist() {
-    let _ = mpd::clear_playlist().await;
+async fn clear_playlist() -> Result<(), String> {
+    Mpd::connect().await?.clear_playlist().await
 }
 
 async fn get_playlist_songs(ws: WebSocketUpgrade) -> impl IntoResponse {
     ws.on_upgrade(handle_ws_playlist)
 }
 
-async fn send_playlist(
-    mpd_client: &mpd_client::Client,
-    socket: &mut WebSocket,
-) -> Result<(), String> {
-    let playlist = mpd::get_playlist(mpd_client).await;
+async fn send_playlist(mpd: &Mpd, socket: &mut WebSocket) -> Result<(), String> {
+    let playlist = mpd.get_playlist().await;
     match playlist {
         Ok(playlist) => {
             let template = t::PlaylistSongsTemplate { songs: playlist }
@@ -190,17 +190,17 @@ async fn send_playlist(
 }
 
 async fn handle_ws_playlist(mut socket: WebSocket) {
-    let connection = mpd::connect().await;
-    if connection.is_err() {
+    let mpd = Mpd::connect().await;
+    if mpd.is_err() {
         return;
     }
+    let mut mpd = mpd.unwrap();
 
-    let (mpd_client, mut connection_events) = connection.unwrap();
-    if send_playlist(&mpd_client, &mut socket).await.is_err() {
+    if send_playlist(&mpd, &mut socket).await.is_err() {
         return;
     }
     loop {
-        let event = connection_events.next().await;
+        let event = mpd.connection_events.next().await;
         if event.is_none() {
             return;
         }
@@ -209,7 +209,7 @@ async fn handle_ws_playlist(mut socket: WebSocket) {
         match event {
             ConnectionEvent::SubsystemChange(Subsystem::Player)
             | ConnectionEvent::SubsystemChange(Subsystem::Queue) => {
-                if send_playlist(&mpd_client, &mut socket).await.is_err() {
+                if send_playlist(&mpd, &mut socket).await.is_err() {
                     return;
                 }
             }
