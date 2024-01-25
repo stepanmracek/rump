@@ -7,9 +7,9 @@
     </li>
 </ul>
 
-<div style="display: flex; flex-direction: row; flex-wrap: wrap;">
+<div style="display: flex; flex-direction: row; flex-wrap: wrap; justify-content: space-evenly;">
 {% for album in albums %}
-<div class="card m-2 shadow" style="max-width: 256px; min-width: 256px;">
+<div class="card m-1 shadow" style="max-width: 192px; min-width: 192px;">
     <a href="#" hx-get="/artist/{{artist}}/album/{{album.album_name}}/songs" hx-target="#content">
         {% match album.art %}
         {% when Some(art) %}
@@ -20,7 +20,7 @@
     </a>
 
     <div class="card-body">
-        <h5 class="card-title">{{album.album_name}}</h5>
+        <h5 class="card-title text-truncate">{{album.album_name}}</h5>
         <p class="card-text">
             {% match album.year %}
             {% when Some(year) %}
@@ -29,10 +29,20 @@
             {% endmatch %}
             &nbsp;
         </p>
-        <a href="#" class="btn btn-primary" hx-get="/playlist/play/artist/{{artist}}/album/{{album.album_name}}" hx-swap="none">Play</a>
-        <a href="#" class="btn btn-primary" hx-get="/playlist/append/artist/{{artist}}/album/{{album.album_name}}" hx-swap="none">Append</a>
+        <a href="#" class="btn btn-primary" hx-get="/playlist/play/artist/{{artist}}/album/{{album.album_name}}" hx-swap="none">
+            <svg class="bi" width="24" height="24" fill="currentColor">
+                <use xlink:href="assets/bootstrap-icons.svg#play-fill"/>
+            </svg>
+        </a>
+        <a href="#" class="btn btn-primary" hx-get="/playlist/append/artist/{{artist}}/album/{{album.album_name}}" hx-swap="none">
+            <svg class="bi" width="24" height="24" fill="currentColor">
+                <use xlink:href="assets/bootstrap-icons.svg#plus-circle-fill"/>
+            </svg>
+        </a>
         <a href="#" class="btn btn-primary" hx-get="/artist/{{artist}}/album/{{album.album_name}}/songs" hx-target="#content">
-            Songs
+            <svg class="bi" width="24" height="24" fill="currentColor">
+                <use xlink:href="assets/bootstrap-icons.svg#info-circle-fill"/>
+            </svg>
         </a>
     </div>
 </div>

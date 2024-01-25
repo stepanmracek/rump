@@ -34,14 +34,14 @@
         </button>
     </div>
     {% if status.has_song %}
-    <div class="ms-2 text-white" style="min-width: 150px;">
-        <strong>
+    <div class="ms-2 text-white">
+        <strong class="text-truncate">
             {% match status.artist %}{% when Some with (val) %}{{ val }}{% when None %}{% endmatch %}
             -
             {% match status.title %}{% when Some with (val) %}{{ val }}{% when None %}{% endmatch %}
         </strong>
         <br>
-        <span>
+        <span class="text-truncate">
             {% match status.album %}{% when Some with (val) %}{{ val }}{% when None %}{% endmatch %}
             {% match status.year %}{% when Some with (val) %}({{ val }}){% when None %}{% endmatch %}
         </span>

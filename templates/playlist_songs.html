@@ -1,7 +1,7 @@
 <div id="playlist-songs">
     <div class="list-group p-3">
         {% for song in songs %}
-        <a href="#" class="list-group-item list-group-item-action" hx-get="/control/play/{{song.id}}" hx-swap="none">
+        <a href="#" class="list-group-item list-group-item-action text-truncate" hx-get="/control/play/{{song.id}}" hx-swap="none">
             <svg class="bi" width="32" height="32" fill="currentColor">
                 {%if song.playing %}
                 <use xlink:href="assets/bootstrap-icons.svg#music-note"/>
