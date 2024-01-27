@@ -4,7 +4,7 @@ mod templates;
 use askama::Template;
 use axum::{
     extract::ws::{WebSocket, WebSocketUpgrade},
-    extract::{Path, Query},
+    extract::Query,
     http::StatusCode,
     response::{IntoResponse, Response},
     routing::get,
@@ -17,13 +17,29 @@ use templates as t;
 use tower_http::services::ServeDir;
 
 #[derive(Deserialize)]
-struct ArtistsSearchQuery {
+struct GenericQuery {
     q: Option<String>,
+}
+
+#[derive(Deserialize)]
+struct ArtistQuery {
+    artist: String,
 }
 
 #[derive(Deserialize)]
 struct UrlQuery {
     url: String,
+}
+
+#[derive(Deserialize)]
+struct ArtistAlbumQuery {
+    artist: String,
+    album: String,
+}
+
+#[derive(Deserialize)]
+struct SongIdQuery {
+    song_id: Option<u64>,
 }
 
 #[tokio::main]
@@ -32,26 +48,19 @@ async fn main() {
         .route("/", get(get_index))
         .route("/library", get(get_library))
         .route("/artists", get(get_artists))
-        .route("/albums/:artist", get(get_albums))
-        .route("/artist/:artist/album/:album/songs", get(get_songs))
+        .route("/albums", get(get_albums))
+        .route("/songs", get(get_songs))
         .route("/status", get(get_status))
-        .route("/control/play", get(control_play))
-        .route("/control/play/:song_id", get(control_play_song))
-        .route("/control/playlist/clear", get(clear_playlist))
+        .route("/control/play", get(control_play_song))
         .route("/control/unpause", get(control_unpause))
         .route("/control/pause", get(control_pause))
         .route("/control/prev", get(control_prev))
         .route("/control/next", get(control_next))
         .route("/playlist", get(get_playlist))
+        .route("/playlist/clear", get(clear_playlist))
         .route("/playlist/songs", get(get_playlist_songs))
-        .route(
-            "/playlist/append/artist/:artist/album/:album",
-            get(append_album),
-        )
-        .route(
-            "/playlist/play/artist/:artist/album/:album",
-            get(play_album),
-        )
+        .route("/playlist/append/album", get(append_album))
+        .route("/playlist/play/album", get(play_album))
         .route("/playlist/play/song", get(play_song_by_url))
         .route("/playlist/append/song", get(append_song_by_url))
         .nest_service("/assets", ServeDir::new("assets"));
@@ -65,7 +74,7 @@ async fn get_library() -> Result<t::HtmlTemplate<t::LibraryTemplate>, AppError> 
 }
 
 async fn get_artists(
-    Query(artists_search_query): Query<ArtistsSearchQuery>,
+    Query(artists_search_query): Query<GenericQuery>,
 ) -> Result<impl IntoResponse, AppError> {
     let artists = Mpd::connect()
         .await?
@@ -75,19 +84,20 @@ async fn get_artists(
     Ok(t::HtmlTemplate(template))
 }
 
-async fn get_albums(Path(artist): Path<String>) -> Result<impl IntoResponse, AppError> {
-    let albums = Mpd::connect().await?.get_albums(&artist).await?;
-    let template = t::AlbumsTemplate { artist, albums };
+async fn get_albums(Query(query): Query<ArtistQuery>) -> Result<impl IntoResponse, AppError> {
+    let albums = Mpd::connect().await?.get_albums(&query.artist).await?;
+    let template = t::AlbumsTemplate {
+        artist: query.artist,
+        albums,
+    };
     Ok(t::HtmlTemplate(template))
 }
 
-async fn get_songs(
-    Path((artist, album)): Path<(String, String)>,
-) -> Result<impl IntoResponse, AppError> {
-    let songs = Mpd::connect().await?.get_songs(&artist, &album).await?;
+async fn get_songs(Query(q): Query<ArtistAlbumQuery>) -> Result<impl IntoResponse, AppError> {
+    let songs = Mpd::connect().await?.get_songs(&q.artist, &q.album).await?;
     let template = t::AlbumSongsTemplate {
-        artist,
-        album,
+        artist: q.artist,
+        album: q.album,
         songs,
     };
     Ok(t::HtmlTemplate(template))
@@ -148,13 +158,12 @@ async fn handle_ws_status(mut socket: WebSocket) {
     }
 }
 
-async fn control_play() -> Result<(), AppError> {
-    Mpd::connect().await?.play().await?;
-    Ok(())
-}
-
-async fn control_play_song(Path(song_id): Path<u64>) -> Result<(), AppError> {
-    Mpd::connect().await?.play_song(song_id).await?;
+async fn control_play_song(Query(q): Query<SongIdQuery>) -> Result<(), AppError> {
+    if let Some(song_id) = q.song_id {
+        Mpd::connect().await?.play_song(song_id).await?;
+    } else {
+        Mpd::connect().await?.play().await?;
+    }
     Ok(())
 }
 
@@ -238,20 +247,19 @@ async fn get_playlist() -> impl IntoResponse {
     t::HtmlTemplate(template)
 }
 
-async fn append_album(
-    Path((artist, album)): Path<(String, String)>,
-) -> Result<impl IntoResponse, AppError> {
+async fn append_album(Query(q): Query<ArtistAlbumQuery>) -> Result<impl IntoResponse, AppError> {
     Mpd::connect()
         .await?
-        .append_album_to_playlist(&artist, &album)
+        .append_album_to_playlist(&q.artist, &q.album)
         .await?;
     Ok(())
 }
 
-async fn play_album(
-    Path((artist, album)): Path<(String, String)>,
-) -> Result<impl IntoResponse, AppError> {
-    Mpd::connect().await?.play_album(&artist, &album).await?;
+async fn play_album(Query(q): Query<ArtistAlbumQuery>) -> Result<impl IntoResponse, AppError> {
+    Mpd::connect()
+        .await?
+        .play_album(&q.artist, &q.album)
+        .await?;
     Ok(())
 }
 

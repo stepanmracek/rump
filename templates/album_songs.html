@@ -7,7 +7,7 @@
     </li>
 </ul>
 
-<H3 class="p-3"><a href="#" hx-get="/albums/{{artist}}" hx-target="#content">{{artist}}</a>: {{album}}</H3>
+<H3 class="p-3"><a href="#" hx-get="/albums?artist={{artist}}" hx-target="#content">{{artist}}</a>: {{album}}</H3>
 
 <div class="list-group ps-3 pe-3 pb-3">
     {% for song in songs %}
