@@ -21,6 +21,11 @@ struct ArtistsSearchQuery {
     q: Option<String>,
 }
 
+#[derive(Deserialize)]
+struct UrlQuery {
+    url: String,
+}
+
 #[tokio::main]
 async fn main() {
     let app = Router::new()
@@ -39,8 +44,16 @@ async fn main() {
         .route("/control/next", get(control_next))
         .route("/playlist", get(get_playlist))
         .route("/playlist/songs", get(get_playlist_songs))
-        .route("/playlist/append/artist/:artist/album/:album", get(append_album))
-        .route("/playlist/play/artist/:artist/album/:album", get(play_album))
+        .route(
+            "/playlist/append/artist/:artist/album/:album",
+            get(append_album),
+        )
+        .route(
+            "/playlist/play/artist/:artist/album/:album",
+            get(play_album),
+        )
+        .route("/playlist/play/song", get(play_song_by_url))
+        .route("/playlist/append/song", get(append_song_by_url))
         .nest_service("/assets", ServeDir::new("assets"));
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8000").await.unwrap();
     axum::serve(listener, app).await.unwrap();
@@ -228,7 +241,10 @@ async fn get_playlist() -> impl IntoResponse {
 async fn append_album(
     Path((artist, album)): Path<(String, String)>,
 ) -> Result<impl IntoResponse, AppError> {
-    Mpd::connect().await?.append_album_to_playlist(&artist, &album).await?;
+    Mpd::connect()
+        .await?
+        .append_album_to_playlist(&artist, &album)
+        .await?;
     Ok(())
 }
 
@@ -236,6 +252,22 @@ async fn play_album(
     Path((artist, album)): Path<(String, String)>,
 ) -> Result<impl IntoResponse, AppError> {
     Mpd::connect().await?.play_album(&artist, &album).await?;
+    Ok(())
+}
+
+async fn play_song_by_url(Query(url_query): Query<UrlQuery>) -> Result<(), AppError> {
+    Mpd::connect()
+        .await?
+        .play_song_by_url(&url_query.url)
+        .await?;
+    Ok(())
+}
+
+async fn append_song_by_url(Query(url_query): Query<UrlQuery>) -> Result<(), AppError> {
+    Mpd::connect()
+        .await?
+        .append_song_by_url(&url_query.url)
+        .await?;
     Ok(())
 }
 

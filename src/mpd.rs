@@ -239,6 +239,26 @@ impl Mpd {
         Ok(())
     }
 
+    pub async fn play_song_by_url(&self, url: &str) -> Result<()> {
+        let song_id = self
+            .mpd_client
+            .command_list((
+                mpd_client::commands::ClearQueue,
+                mpd_client::commands::Add::uri(url),
+            ))
+            .await?
+            .1;
+        self.play_song(song_id.0).await?;
+        Ok(())
+    }
+
+    pub async fn append_song_by_url(&self, url: &str) -> Result<()> {
+        self.mpd_client
+            .command(mpd_client::commands::Add::uri(url))
+            .await?;
+        Ok(())
+    }
+
     pub async fn get_playlist(&self) -> Result<Vec<SongInQueue>> {
         let (queue, current_song) = self
             .mpd_client

@@ -16,12 +16,12 @@
             {{song.title}}
         </span>
 
-        <button type="button" class="btn btn-link">
+        <button type="button" class="btn btn-link" hx-get="/playlist/play/song?url={{song.url}}" hx-swap="none">
             <svg class="bi" width="24" height="24" fill="currentColor">
                 <use xlink:href="assets/bootstrap-icons.svg#play-fill"/>
             </svg>
         </button>
-        <button type="button" class="btn btn-link">
+        <button type="button" class="btn btn-link" hx-get="/playlist/append/song?url={{song.url}}" hx-swap="none">
             <svg class="bi" width="24" height="24" fill="currentColor">
                 <use xlink:href="assets/bootstrap-icons.svg#plus-circle-fill"/>
             </svg>
