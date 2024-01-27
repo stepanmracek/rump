@@ -110,6 +110,21 @@ impl Mpd {
             .collect())
     }
 
+    pub async fn album_art(&self, url: &str) -> Option<String> {
+        self.mpd_client
+            .album_art(url)
+            .await
+            .ok()
+            .flatten()
+            .and_then(|(bytes, _mime)| {
+                if !bytes.is_empty() {
+                    Some(BASE64_STANDARD.encode(bytes))
+                } else {
+                    None
+                }
+            })
+    }
+
     pub async fn get_albums(&self, artist: &str) -> Result<Vec<Album>> {
         let response = self
             .mpd_client
@@ -130,23 +145,12 @@ impl Mpd {
             let songs = self.get_songs(artist, &album_name).await?;
             let first_song = songs.first();
             let year = first_song.and_then(|song| song.year);
-
             let art = if let Some(first_song) = first_song {
-                self.mpd_client
-                    .album_art(&first_song.url)
-                    .await
-                    .ok()
-                    .flatten()
-                    .and_then(|(bytes, _mime)| {
-                        if !bytes.is_empty() {
-                            Some(BASE64_STANDARD.encode(bytes))
-                        } else {
-                            None
-                        }
-                    })
+                self.album_art(&first_song.url).await
             } else {
                 None
             };
+
             albums.push(Album {
                 album_name,
                 year,
