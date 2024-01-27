@@ -54,7 +54,9 @@ where
 
 impl Mpd {
     pub async fn connect() -> Result<Self> {
-        let connection = tokio::net::TcpStream::connect("localhost:6600").await;
+        let host = std::env::var("MPD_HOST").unwrap_or("localhost".to_string());
+        let port = std::env::var("MPD_PORT").unwrap_or("6600".to_string());
+        let connection = tokio::net::TcpStream::connect(format!("{host}:{port}")).await;
         let (mpd_client, connection_events) = mpd_client::Client::connect(connection?).await?;
         Ok(Self {
             mpd_client,
