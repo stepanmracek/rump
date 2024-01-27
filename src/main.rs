@@ -68,7 +68,7 @@ async fn main() {
     axum::serve(listener, app).await.unwrap();
 }
 
-async fn get_library() -> Result<t::HtmlTemplate<t::LibraryTemplate>, AppError> {
+async fn get_library() -> Result<impl IntoResponse, AppError> {
     let template = t::LibraryTemplate;
     Ok(t::HtmlTemplate(template))
 }
@@ -247,7 +247,7 @@ async fn get_playlist() -> impl IntoResponse {
     t::HtmlTemplate(template)
 }
 
-async fn append_album(Query(q): Query<ArtistAlbumQuery>) -> Result<impl IntoResponse, AppError> {
+async fn append_album(Query(q): Query<ArtistAlbumQuery>) -> Result<(), AppError> {
     Mpd::connect()
         .await?
         .append_album_to_playlist(&q.artist, &q.album)
@@ -255,7 +255,7 @@ async fn append_album(Query(q): Query<ArtistAlbumQuery>) -> Result<impl IntoResp
     Ok(())
 }
 
-async fn play_album(Query(q): Query<ArtistAlbumQuery>) -> Result<impl IntoResponse, AppError> {
+async fn play_album(Query(q): Query<ArtistAlbumQuery>) -> Result<(), AppError> {
     Mpd::connect()
         .await?
         .play_album(&q.artist, &q.album)
