@@ -12,9 +12,11 @@
 {% match error %}
 {% when Some(error) %}
 <body>
-    <h1 class="display-1">Connection error</h1>
-    <div class="alert alert-danger" role="alert">
-        {{error}}
+    <div class="container-sm">
+        <h1 class="display-1">Connection error</h1>
+        <div class="alert alert-danger" role="alert">
+            {{error}}
+        </div>
     </div>
 </body>
 {% when None %}
