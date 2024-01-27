@@ -7,7 +7,9 @@ use axum::{
 
 #[derive(Template)]
 #[template(path = "index.html")]
-pub struct IndexTemplate;
+pub struct IndexTemplate {
+    pub error: Option<String>
+}
 
 #[derive(Template)]
 #[template(path = "library.html")]

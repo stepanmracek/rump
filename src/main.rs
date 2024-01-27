@@ -81,7 +81,8 @@ async fn get_songs(
 }
 
 async fn get_index() -> impl IntoResponse {
-    let template = t::IndexTemplate;
+    let error = Mpd::connect().await.err().map(|e| e.to_string());
+    let template = t::IndexTemplate { error };
     t::HtmlTemplate(template)
 }
 

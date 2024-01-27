@@ -9,6 +9,15 @@
     <link href="/assets/bootstrap.min.css" rel="stylesheet">
 </head>
 
+{% match error %}
+{% when Some(error) %}
+<body>
+    <h1 class="display-1">Connection error</h1>
+    <div class="alert alert-danger" role="alert">
+        {{error}}
+    </div>
+</body>
+{% when None %}
 <body hx-push-url="/">
     <nav class="navbar bg-primary navbar-expand" data-bs-theme="dark">
         <div class="container-fluid" hx-ws="connect:/status">
@@ -17,5 +26,6 @@
     </nav>
     <div id="content" hx-get="/library" hx-trigger="load" class="container-sm"></div>
 </body>
+{% endmatch %}
 
 </html>
