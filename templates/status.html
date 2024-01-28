@@ -34,6 +34,11 @@
         </button>
     </div>
     {% if status.has_song %}
+    {% match status.artist %}{% when Some with (artist) %}
+    {% match status.album %}{% when Some with (album) %}
+    <img class="ms-2 width="48" height="48" src="/cover?artist={{artist|urlencode_strict}}&album={{album|urlencode_strict}}" style="border-radius: 0.375rem; border-color: white; border-width: 1px; border-style: solid;">
+    {% when None %}{% endmatch %}
+    {% when None %}{% endmatch %}
     <div class="ms-2 text-white">
         <strong class="text-truncate">
             {% match status.artist %}{% when Some with (val) %}{{ val }}{% when None %}{% endmatch %}

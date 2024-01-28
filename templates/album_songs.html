@@ -7,7 +7,7 @@
     </li>
 </ul>
 
-<H3 class="p-3"><a href="#" hx-get="/albums?artist={{artist}}" hx-target="#content">{{artist}}</a>: {{album}}</H3>
+<H3 class="p-3"><a href="#" hx-get="/albums?artist={{artist|urlencode_strict}}" hx-target="#content">{{artist}}</a>: {{album}}</H3>
 
 <div class="list-group ps-3 pe-3 pb-3">
     {% for song in songs %}
@@ -16,12 +16,12 @@
             {{song.title}}
         </span>
 
-        <button type="button" class="btn btn-link" hx-get="/playlist/play/song?url={{song.url}}" hx-swap="none">
+        <button type="button" class="btn btn-link" hx-get="/playlist/play/song?url={{song.url|urlencode_strict}}" hx-swap="none">
             <svg class="bi" width="24" height="24" fill="currentColor">
                 <use xlink:href="assets/bootstrap-icons.svg#play-fill"/>
             </svg>
         </button>
-        <button type="button" class="btn btn-link" hx-get="/playlist/append/song?url={{song.url}}" hx-swap="none">
+        <button type="button" class="btn btn-link" hx-get="/playlist/append/song?url={{song.url|urlencode_strict}}" hx-swap="none">
             <svg class="bi" width="24" height="24" fill="currentColor">
                 <use xlink:href="assets/bootstrap-icons.svg#plus-circle-fill"/>
             </svg>

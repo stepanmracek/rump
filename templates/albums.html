@@ -10,13 +10,8 @@
 <div style="display: flex; flex-direction: row; flex-wrap: wrap; justify-content: space-evenly;">
 {% for album in albums %}
 <div class="card m-1 shadow" style="max-width: 192px; min-width: 192px;">
-    <a href="#" hx-get="/songs?artist={{artist}}&album={{album.album_name}}" hx-target="#content">
-        {% match album.art %}
-        {% when Some(art) %}
-        <img src="data:image/;base64,{{art}}" class="card-img-top">
-        {% when None %}
-        <img src="/assets/lp.png" class="card-img-top">
-        {% endmatch %}
+    <a href="#" hx-get="/songs?artist={{artist|urlencode_strict}}&album={{album.album_name|urlencode_strict}}" hx-target="#content">
+        <img width="192" height="192" src="/cover?artist={{artist|urlencode_strict}}&album={{album.album_name|urlencode_strict}}" class="card-img-top">
     </a>
 
     <div class="card-body">
@@ -29,17 +24,17 @@
             {% endmatch %}
             &nbsp;
         </p>
-        <a href="#" class="btn btn-primary" hx-get="/playlist/play/album?artist={{artist}}&album={{album.album_name}}" hx-swap="none">
+        <a href="#" class="btn btn-primary" hx-get="/playlist/play/album?artist={{artist|urlencode_strict}}&album={{album.album_name|urlencode_strict}}" hx-swap="none">
             <svg class="bi" width="24" height="24" fill="currentColor">
                 <use xlink:href="assets/bootstrap-icons.svg#play-fill"/>
             </svg>
         </a>
-        <a href="#" class="btn btn-primary" hx-get="/playlist/append/album?artist={{artist}}&album={{album.album_name}}" hx-swap="none">
+        <a href="#" class="btn btn-primary" hx-get="/playlist/append/album?artist={{artist|urlencode_strict}}&album={{album.album_name|urlencode_strict}}" hx-swap="none">
             <svg class="bi" width="24" height="24" fill="currentColor">
                 <use xlink:href="assets/bootstrap-icons.svg#plus-circle-fill"/>
             </svg>
         </a>
-        <a href="#" class="btn btn-primary" hx-get="/songs?artist={{artist}}&album={{album.album_name}}" hx-target="#content">
+        <a href="#" class="btn btn-primary" hx-get="/songs?artist={{artist|urlencode_strict}}&album={{album.album_name|urlencode_strict}}" hx-target="#content">
             <svg class="bi" width="24" height="24" fill="currentColor">
                 <use xlink:href="assets/bootstrap-icons.svg#info-circle-fill"/>
             </svg>

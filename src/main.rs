@@ -1,7 +1,7 @@
 mod mpd;
 mod templates;
-
 use askama::Template;
+use axum::extract::State;
 use axum::{
     extract::ws::{WebSocket, WebSocketUpgrade},
     extract::Query,
@@ -13,6 +13,8 @@ use axum::{
 use mpd::Mpd;
 use mpd_client::client::{ConnectionEvent, Subsystem};
 use serde::Deserialize;
+use std::collections::{HashMap, VecDeque};
+use std::sync::{Arc, Mutex};
 use templates as t;
 use tower_http::services::ServeDir;
 
@@ -42,8 +44,19 @@ struct SongIdQuery {
     song_id: Option<u64>,
 }
 
+struct AlbumArtCache {
+    cache: HashMap<(String, String), Vec<u8>>,
+    keys: VecDeque<(String, String)>,
+}
+
 #[tokio::main]
 async fn main() {
+    let album_art_cache: Arc<Mutex<AlbumArtCache>> = {
+        let cache = HashMap::new();
+        let keys = VecDeque::from([]);
+        Mutex::new(AlbumArtCache { cache, keys }).into()
+    };
+
     let app = Router::new()
         .route("/", get(get_index))
         .route("/library", get(get_library))
@@ -63,6 +76,8 @@ async fn main() {
         .route("/playlist/play/album", get(play_album))
         .route("/playlist/play/song", get(play_song_by_url))
         .route("/playlist/append/song", get(append_song_by_url))
+        .route("/cover", get(get_cover))
+        .with_state(album_art_cache)
         .nest_service("/assets", ServeDir::new("assets"));
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8000").await.unwrap();
     axum::serve(listener, app).await.unwrap();
@@ -277,6 +292,39 @@ async fn append_song_by_url(Query(url_query): Query<UrlQuery>) -> Result<(), App
         .append_song_by_url(&url_query.url)
         .await?;
     Ok(())
+}
+
+async fn get_cover(
+    Query(q): Query<ArtistAlbumQuery>,
+    State(cache): State<Arc<Mutex<AlbumArtCache>>>,
+) -> Result<Vec<u8>, AppError> {
+    let cache_key = (q.artist.clone(), q.album.clone());
+
+    if let Ok(cache) = cache.lock() {
+        if let Some(cached) = cache.cache.get(&cache_key) {
+            println!("{}-{}: returning cached value", q.artist, q.album);
+            return Ok(cached.clone());
+        }
+    }
+
+    let art = Mpd::connect().await?.album_art(&q.artist, &q.album).await?;
+
+    if let Ok(mut cache) = cache.lock() {
+        let old_val = cache.cache.insert(cache_key.clone(), art.clone());
+        if old_val.is_none() {
+            // new value was added
+            println!("{}-{}: caching new value", cache_key.0, cache_key.1);
+            cache.keys.push_back(cache_key);
+
+            while cache.keys.len() > 100 {
+                let to_delete = cache.keys.pop_front().unwrap();
+                println!("{}-{}: removing cached value", to_delete.0, to_delete.1);
+                cache.cache.remove(&to_delete);
+            }
+        }
+    }
+
+    Ok(art)
 }
 
 struct AppError(anyhow::Error);

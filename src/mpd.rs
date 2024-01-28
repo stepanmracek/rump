@@ -1,11 +1,10 @@
 use anyhow::Result;
-use base64::{prelude::BASE64_STANDARD, Engine};
 use mpd_client::responses::PlayState;
+use std::io::Read;
 
 pub struct Album {
     pub album_name: String,
     pub year: Option<i32>,
-    pub art: Option<String>,
 }
 
 pub struct Status {
@@ -56,7 +55,8 @@ impl Mpd {
     pub async fn connect() -> Result<Self> {
         let host = std::env::var("MPD_HOST").unwrap_or("localhost".to_string());
         let port = std::env::var("MPD_PORT").unwrap_or("6600".to_string());
-        let connection = tokio::net::TcpStream::connect(format!("{host}:{port}")).await;
+        let addr = format!("{host}:{port}");
+        let connection = tokio::net::TcpStream::connect(addr).await;
         let (mpd_client, connection_events) = mpd_client::Client::connect(connection?).await?;
         Ok(Self {
             mpd_client,
@@ -112,19 +112,69 @@ impl Mpd {
             .collect())
     }
 
-    pub async fn album_art(&self, url: &str) -> Option<String> {
-        self.mpd_client
-            .album_art(url)
-            .await
-            .ok()
-            .flatten()
+    pub async fn album_art(&self, artist: &str, album: &str) -> Result<Vec<u8>> {
+        let fallback = || {
+            let mut file = std::fs::File::open("assets/lp.png").unwrap();
+            let mut buf = vec![];
+            file.read_to_end(&mut buf).unwrap();
+            buf
+        };
+
+        let url = self
+            .get_songs(artist, album)
+            .await?
+            .first()
+            .map(|first_song| first_song.url.clone());
+        if url.is_none() {
+            return Ok(fallback());
+        }
+
+        let art = self
+            .mpd_client
+            .album_art(&url.unwrap())
+            .await?
             .and_then(|(bytes, _mime)| {
                 if !bytes.is_empty() {
-                    Some(BASE64_STANDARD.encode(bytes))
+                    let img = image::load_from_memory(&bytes);
+                    if let Ok(img) = img {
+                        println!(
+                            "{artist}-{album}: Image size: {}x{}",
+                            img.width(),
+                            img.height()
+                        );
+                        if img.width() > 192 {
+                            let img = image::imageops::resize(
+                                &img,
+                                192,
+                                192,
+                                image::imageops::FilterType::Triangle,
+                            );
+                            let mut cursor = std::io::Cursor::new(vec![]);
+                            if let Ok(()) = img.write_to(&mut cursor, image::ImageFormat::Png) {
+                                println!("{artist}-{album}: Image resized to: 192x192");
+                                Some(cursor.into_inner())
+                            } else {
+                                println!("{artist}-{album}: Image write error");
+                                None
+                            }
+                        } else {
+                            Some(bytes.into_iter().collect())
+                        }
+                    } else {
+                        println!("{artist}-{album}: Image load error");
+                        None
+                    }
                 } else {
+                    println!("{artist}-{album}: Image is just empty bytes");
                     None
                 }
-            })
+            });
+
+        if let Some(art) = art {
+            Ok(art)
+        } else {
+            Ok(fallback())
+        }
     }
 
     pub async fn get_albums(&self, artist: &str) -> Result<Vec<Album>> {
@@ -147,17 +197,8 @@ impl Mpd {
             let songs = self.get_songs(artist, &album_name).await?;
             let first_song = songs.first();
             let year = first_song.and_then(|song| song.year);
-            let art = if let Some(first_song) = first_song {
-                self.album_art(&first_song.url).await
-            } else {
-                None
-            };
 
-            albums.push(Album {
-                album_name,
-                year,
-                art,
-            });
+            albums.push(Album { album_name, year });
         }
         albums.sort_by_key(|album| album.year);
         Ok(albums)
