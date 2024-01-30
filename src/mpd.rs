@@ -137,7 +137,7 @@ impl Mpd {
                 if !bytes.is_empty() {
                     let img = image::load_from_memory(&bytes);
                     if let Ok(img) = img {
-                        println!(
+                        tracing::debug!(target: "album_art",
                             "{artist}-{album}: Image size: {}x{}",
                             img.width(),
                             img.height()
@@ -151,21 +151,21 @@ impl Mpd {
                             );
                             let mut cursor = std::io::Cursor::new(vec![]);
                             if let Ok(()) = img.write_to(&mut cursor, image::ImageFormat::Png) {
-                                println!("{artist}-{album}: Image resized to: 192x192");
+                                tracing::debug!(target: "album_art", "{artist}-{album}: Image resized to: 192x192");
                                 Some(cursor.into_inner())
                             } else {
-                                println!("{artist}-{album}: Image write error");
+                                tracing::warn!(target: "album_art", "{artist}-{album}: Image write error");
                                 None
                             }
                         } else {
                             Some(bytes.into_iter().collect())
                         }
                     } else {
-                        println!("{artist}-{album}: Image load error");
+                        tracing::warn!(target: "album_art", "{artist}-{album}: Image load error");
                         None
                     }
                 } else {
-                    println!("{artist}-{album}: Image is just empty bytes");
+                    tracing::trace!(target: "album_art", "{artist}-{album}: Image is just empty bytes");
                     None
                 }
             });

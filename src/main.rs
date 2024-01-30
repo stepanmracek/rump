@@ -17,6 +17,7 @@ use std::collections::{HashMap, VecDeque};
 use std::sync::{Arc, Mutex};
 use templates as t;
 use tower_http::services::ServeDir;
+use tower_http::trace::TraceLayer;
 
 #[derive(Deserialize)]
 struct GenericQuery {
@@ -51,6 +52,10 @@ struct AlbumArtCache {
 
 #[tokio::main]
 async fn main() {
+    tracing_subscriber::fmt()
+        .with_max_level(tracing::Level::INFO)
+        .init();
+
     let album_art_cache: Arc<Mutex<AlbumArtCache>> = {
         let cache = HashMap::new();
         let keys = VecDeque::from([]);
@@ -78,8 +83,10 @@ async fn main() {
         .route("/playlist/append/song", get(append_song_by_url))
         .route("/cover", get(get_cover))
         .with_state(album_art_cache)
-        .nest_service("/assets", ServeDir::new("assets"));
+        .nest_service("/assets", ServeDir::new("assets"))
+        .layer(TraceLayer::new_for_http());
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8000").await.unwrap();
+    tracing::info!("listening on {}", listener.local_addr().unwrap());
     axum::serve(listener, app).await.unwrap();
 }
 
@@ -302,7 +309,7 @@ async fn get_cover(
 
     if let Ok(cache) = cache.lock() {
         if let Some(cached) = cache.cache.get(&cache_key) {
-            println!("{}-{}: returning cached value", q.artist, q.album);
+            tracing::debug!(target: "album_art", "returning cached value for {}-{}", q.artist, q.album);
             return Ok(cached.clone());
         }
     }
@@ -313,12 +320,12 @@ async fn get_cover(
         let old_val = cache.cache.insert(cache_key.clone(), art.clone());
         if old_val.is_none() {
             // new value was added
-            println!("{}-{}: caching new value", cache_key.0, cache_key.1);
+            tracing::debug!(target: "album_art", "caching new value {}-{}", cache_key.0, cache_key.1);
             cache.keys.push_back(cache_key);
 
             while cache.keys.len() > 100 {
                 let to_delete = cache.keys.pop_front().unwrap();
-                println!("{}-{}: removing cached value", to_delete.0, to_delete.1);
+                tracing::debug!(target: "album_art", "removing cached value {}-{}", to_delete.0, to_delete.1);
                 cache.cache.remove(&to_delete);
             }
         }
