@@ -396,7 +396,9 @@ impl Mpd {
     }
 
     pub async fn update_db(&self) -> Result<()> {
-        self.mpd_client.command(mpd_client::commands::Update::new()).await?;
+        self.mpd_client
+            .command(mpd_client::commands::Update::new())
+            .await?;
         Ok(())
     }
 }
