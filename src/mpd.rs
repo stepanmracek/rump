@@ -16,6 +16,10 @@ pub struct Status {
     pub has_next: bool,
     pub has_prev: bool,
     pub has_song: bool,
+    pub single_mode: mpd_client::commands::SingleMode,
+    pub repeat: bool,
+    pub random: bool,
+    pub consume: bool,
 }
 
 pub struct SongInQueue {
@@ -221,34 +225,33 @@ impl Mpd {
                 .is_some_and(|current_song| current_song.0 .0 + 1 < status.playlist_length);
         let has_prev = play_state != PlayState::Stopped && has_song;
 
-        if let Some(current_song) = current_song {
-            let title = current_song.song.title().map(|s| s.to_string());
-            let artist = current_song.song.artists().first().map(|s| s.to_string());
-            let album = current_song.song.album().map(|s| s.to_string());
-            let year = get_single_tag_value(&current_song.song, &mpd_client::tag::Tag::Date);
+        let title = current_song
+            .as_ref()
+            .and_then(|song| song.song.title().map(|s| s.to_string()));
+        let artist = current_song
+            .as_ref()
+            .and_then(|song| song.song.artists().first().map(|s| s.to_string()));
+        let album = current_song
+            .as_ref()
+            .and_then(|song| song.song.album().map(|s| s.to_string()));
+        let year = current_song
+            .as_ref()
+            .and_then(|song| get_single_tag_value::<i32>(&song.song, &mpd_client::tag::Tag::Date));
 
-            Ok(Status {
-                title,
-                artist,
-                album,
-                year,
-                play_state,
-                has_next,
-                has_prev,
-                has_song,
-            })
-        } else {
-            Ok(Status {
-                title: None,
-                artist: None,
-                album: None,
-                year: None,
-                play_state,
-                has_next,
-                has_prev,
-                has_song,
-            })
-        }
+        Ok(Status {
+            title,
+            artist,
+            album,
+            year,
+            play_state,
+            has_next,
+            has_prev,
+            has_song,
+            consume: status.consume,
+            single_mode: status.single,
+            repeat: status.repeat,
+            random: status.random,
+        })
     }
 
     pub async fn prev(&self) -> Result<()> {
@@ -361,6 +364,30 @@ impl Mpd {
         if let Some(id) = ids.first() {
             self.play_song(id.0).await?;
         }
+        Ok(())
+    }
+
+    pub async fn toggle_repeat(&self) -> Result<()> {
+        let repeat = self
+            .mpd_client
+            .command(mpd_client::commands::Status)
+            .await?
+            .repeat;
+        self.mpd_client
+            .command(mpd_client::commands::SetRepeat(!repeat))
+            .await?;
+        Ok(())
+    }
+
+    pub async fn toggle_random(&self) -> Result<()> {
+        let random = self
+            .mpd_client
+            .command(mpd_client::commands::Status)
+            .await?
+            .random;
+        self.mpd_client
+            .command(mpd_client::commands::SetRandom(!random))
+            .await?;
         Ok(())
     }
 }

@@ -74,6 +74,8 @@ async fn main() {
         .route("/control/pause", get(control_pause))
         .route("/control/prev", get(control_prev))
         .route("/control/next", get(control_next))
+        .route("/control/toggle_repeat", get(toggle_repeat))
+        .route("/control/toggle_random", get(toggle_random))
         .route("/playlist", get(get_playlist))
         .route("/playlist/clear", get(clear_playlist))
         .route("/playlist/songs", get(get_playlist_songs))
@@ -135,19 +137,10 @@ async fn get_status(ws: WebSocketUpgrade) -> impl IntoResponse {
     ws.on_upgrade(handle_ws_status)
 }
 
-async fn send_mpd_status(mpd: &mut Mpd, socket: &mut WebSocket) -> Result<(), AppError> {
-    let mpd_status = mpd.get_status().await;
-    match mpd_status {
-        Ok(mpd_status) => {
-            let template = t::StatusTemplate { status: mpd_status }.render();
-            match template {
-                Ok(template) => socket.send(template.into()).await?,
-                Err(e) => return Err(e.into()),
-            };
-        }
-        Err(e) => return Err(e.into()),
-    };
-
+async fn send_mpd_status(mpd: &mut Mpd, socket: &mut WebSocket) -> anyhow::Result<()> {
+    let mpd_status = mpd.get_status().await?;
+    let template = t::StatusTemplate { status: mpd_status }.render()?;
+    socket.send(template.into()).await?;
     Ok(())
 }
 
@@ -214,22 +207,29 @@ async fn clear_playlist() -> Result<(), AppError> {
     Ok(())
 }
 
+async fn toggle_random() -> Result<(), AppError> {
+    Mpd::connect().await?.toggle_random().await?;
+    Ok(())
+}
+
+async fn toggle_repeat() -> Result<(), AppError> {
+    Mpd::connect().await?.toggle_repeat().await?;
+    Ok(())
+}
+
 async fn get_playlist_songs(ws: WebSocketUpgrade) -> impl IntoResponse {
     ws.on_upgrade(handle_ws_playlist)
 }
 
-async fn send_playlist(mpd: &Mpd, socket: &mut WebSocket) -> Result<(), AppError> {
-    let playlist = mpd.get_playlist().await;
-    match playlist {
-        Ok(playlist) => {
-            let template = t::PlaylistSongsTemplate { songs: playlist }.render();
-            match template {
-                Ok(template) => socket.send(template.into()).await?,
-                Err(e) => return Err(e.into()),
-            };
-        }
-        Err(e) => return Err(e.into()),
-    };
+async fn send_playlist(mpd: &Mpd, socket: &mut WebSocket) -> anyhow::Result<()> {
+    let status = mpd.get_status().await?;
+    let playlist = mpd.get_playlist().await?;
+    let template = t::PlaylistSongsTemplate {
+        songs: playlist,
+        status,
+    }
+    .render()?;
+    socket.send(template.into()).await?;
 
     Ok(())
 }
@@ -253,7 +253,8 @@ async fn handle_ws_playlist(mut socket: WebSocket) {
 
         match event {
             ConnectionEvent::SubsystemChange(Subsystem::Player)
-            | ConnectionEvent::SubsystemChange(Subsystem::Queue) => {
+            | ConnectionEvent::SubsystemChange(Subsystem::Queue)
+            | ConnectionEvent::SubsystemChange(Subsystem::Options) => {
                 if send_playlist(&mpd, &mut socket).await.is_err() {
                     return;
                 }

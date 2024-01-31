@@ -42,6 +42,7 @@ pub struct PlaylistTemplate;
 #[template(path = "playlist_songs.html")]
 pub struct PlaylistSongsTemplate {
     pub songs: Vec<SongInQueue>,
+    pub status: Status,
 }
 
 #[derive(Template)]
