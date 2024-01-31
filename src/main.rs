@@ -85,6 +85,7 @@ async fn main() {
         .route("/playlist/append/song", get(append_song_by_url))
         .route("/cover", get(get_cover))
         .route("/settings", get(get_settings))
+        .route("/settings/update_db", get(update_db))
         .with_state(album_art_cache)
         .nest_service("/assets", ServeDir::new("assets"))
         .layer(TraceLayer::new_for_http());
@@ -113,6 +114,11 @@ async fn get_settings() -> Result<impl IntoResponse, AppError> {
         },
     };
     Ok(t::HtmlTemplate(template))
+}
+
+async fn update_db() -> Result<(), AppError> {
+    Mpd::connect().await?.update_db().await?;
+    Ok(())
 }
 
 async fn get_artists(

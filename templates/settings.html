@@ -1,34 +1,36 @@
 {{ tabs|e("none") }}
 
 <table class="table">
-    <tbody>
-      <tr>
-        <th scope="row">Artists</th>
-        <td>{{stats.artists}}</td>
-      </tr>
-      <tr>
-        <th scope="row">Albums</th>
-        <td>{{stats.albums}}</td>
-      </tr>
-      <tr>
-        <th scope="row">Songs</th>
-        <td>{{stats.songs}}</td>
-      </tr>
-      <tr>
-        <th scope="row">Uptime</th>
-        <td>{{stats.uptime.as_secs()|duration}}s</td>
-      </tr>
-      <tr>
-        <th scope="row">Playtime</th>
-        <td>{{stats.playtime.as_secs()|duration}}s</td>
-      </tr>
-      <tr>
-        <th scope="row">DB playtime</th>
-        <td>{{stats.db_playtime.as_secs()|duration}}s</td>
-      </tr>
-      <tr>
-        <th scope="row">DB Updated</th>
-        <td>{{stats.db_last_update|datetime}}</td>
-      </tr>
-    </tbody>
-  </table>
+  <tbody>
+    <tr>
+      <th scope="row">Artists</th>
+      <td>{{stats.artists}}</td>
+    </tr>
+    <tr>
+      <th scope="row">Albums</th>
+      <td>{{stats.albums}}</td>
+    </tr>
+    <tr>
+      <th scope="row">Songs</th>
+      <td>{{stats.songs}}</td>
+    </tr>
+    <tr>
+      <th scope="row">Uptime</th>
+      <td>{{stats.uptime.as_secs()|duration}}s</td>
+    </tr>
+    <tr>
+      <th scope="row">Playtime</th>
+      <td>{{stats.playtime.as_secs()|duration}}s</td>
+    </tr>
+    <tr>
+      <th scope="row">DB playtime</th>
+      <td>{{stats.db_playtime.as_secs()|duration}}s</td>
+    </tr>
+    <tr>
+      <th scope="row">DB Updated</th>
+      <td>{{stats.db_last_update|datetime}}</td>
+    </tr>
+  </tbody>
+</table>
+
+<button type="button" class="btn btn-primary" hx-get="/settings/update_db" hx-swap="none">Update DB</button>
