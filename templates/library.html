@@ -1,11 +1,4 @@
-<ul class="nav nav-tabs pt-3 ps-3">
-    <li class="nav-item">
-        <a href="#" class="nav-link active" href="#" hx-get="/library" hx-target="#content">Library</a>
-    </li>
-    <li class="nav-item">
-        <a href="#" class="nav-link" href="#" hx-get="/playlist" hx-target="#content">Playlist</a>
-    </li>
-</ul>
+{{ tabs|e("none") }}
 
 <div class="m-3">
     <input name="q" class="form-control" placeholder="search" hx-get="/artists" hx-trigger="keyup changed delay:500ms" hx-target="#artists">

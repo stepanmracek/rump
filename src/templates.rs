@@ -11,9 +11,17 @@ pub struct IndexTemplate {
     pub error: Option<String>,
 }
 
+#[derive(Template, Default)]
+#[template(path = "tabs.html")]
+pub struct TabsTemplate {
+    pub library_active: bool,
+    pub playlist_active: bool,
+    pub settings_active: bool,
+}
+
 #[derive(Template)]
 #[template(path = "library.html")]
-pub struct LibraryTemplate;
+pub struct LibraryTemplate { pub tabs: TabsTemplate }
 
 #[derive(Template)]
 #[template(path = "artists.html")]
@@ -24,6 +32,7 @@ pub struct ArtistsTemplate {
 #[derive(Template)]
 #[template(path = "albums.html")]
 pub struct AlbumsTemplate {
+    pub tabs: TabsTemplate,
     pub artist: String,
     pub albums: Vec<Album>,
 }
@@ -36,7 +45,7 @@ pub struct StatusTemplate {
 
 #[derive(Template)]
 #[template(path = "playlist.html")]
-pub struct PlaylistTemplate;
+pub struct PlaylistTemplate { pub tabs: TabsTemplate }
 
 #[derive(Template)]
 #[template(path = "playlist_songs.html")]
@@ -48,6 +57,7 @@ pub struct PlaylistSongsTemplate {
 #[derive(Template)]
 #[template(path = "album_songs.html")]
 pub struct AlbumSongsTemplate {
+    pub tabs: TabsTemplate,
     pub artist: String,
     pub album: String,
     pub songs: Vec<Song>,

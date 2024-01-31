@@ -93,7 +93,12 @@ async fn main() {
 }
 
 async fn get_library() -> Result<impl IntoResponse, AppError> {
-    let template = t::LibraryTemplate;
+    let template = t::LibraryTemplate {
+        tabs: t::TabsTemplate {
+            library_active: true,
+            ..Default::default()
+        },
+    };
     Ok(t::HtmlTemplate(template))
 }
 
@@ -111,6 +116,10 @@ async fn get_artists(
 async fn get_albums(Query(query): Query<ArtistQuery>) -> Result<impl IntoResponse, AppError> {
     let albums = Mpd::connect().await?.get_albums(&query.artist).await?;
     let template = t::AlbumsTemplate {
+        tabs: t::TabsTemplate {
+            library_active: true,
+            ..Default::default()
+        },
         artist: query.artist,
         albums,
     };
@@ -120,6 +129,10 @@ async fn get_albums(Query(query): Query<ArtistQuery>) -> Result<impl IntoRespons
 async fn get_songs(Query(q): Query<ArtistAlbumQuery>) -> Result<impl IntoResponse, AppError> {
     let songs = Mpd::connect().await?.get_songs(&q.artist, &q.album).await?;
     let template = t::AlbumSongsTemplate {
+        tabs: t::TabsTemplate {
+            library_active: true,
+            ..Default::default()
+        },
         artist: q.artist,
         album: q.album,
         songs,
@@ -266,7 +279,12 @@ async fn handle_ws_playlist(mut socket: WebSocket) {
 }
 
 async fn get_playlist() -> impl IntoResponse {
-    let template = t::PlaylistTemplate;
+    let template = t::PlaylistTemplate {
+        tabs: t::TabsTemplate {
+            playlist_active: true,
+            ..Default::default()
+        },
+    };
     t::HtmlTemplate(template)
 }
 

@@ -1,11 +1,4 @@
-<ul class="nav nav-tabs pt-3 ps-3">
-    <li class="nav-item">
-        <a href="#" class="nav-link active" hx-get="/library" hx-target="#content">Library</a>
-    </li>
-    <li class="nav-item">
-        <a href="#" class="nav-link" hx-get="/playlist" hx-target="#content">Playlist</a>
-    </li>
-</ul>
+{{ tabs|e("none") }}
 
 <H3 class="p-3"><a href="#" hx-get="/albums?artist={{artist|urlencode_strict}}" hx-target="#content">{{artist}}</a>: {{album}}</H3>
 
