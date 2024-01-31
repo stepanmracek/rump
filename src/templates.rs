@@ -21,7 +21,9 @@ pub struct TabsTemplate {
 
 #[derive(Template)]
 #[template(path = "library.html")]
-pub struct LibraryTemplate { pub tabs: TabsTemplate }
+pub struct LibraryTemplate {
+    pub tabs: TabsTemplate,
+}
 
 #[derive(Template)]
 #[template(path = "artists.html")]
@@ -45,7 +47,9 @@ pub struct StatusTemplate {
 
 #[derive(Template)]
 #[template(path = "playlist.html")]
-pub struct PlaylistTemplate { pub tabs: TabsTemplate }
+pub struct PlaylistTemplate {
+    pub tabs: TabsTemplate,
+}
 
 #[derive(Template)]
 #[template(path = "playlist_songs.html")]
@@ -61,6 +65,31 @@ pub struct AlbumSongsTemplate {
     pub artist: String,
     pub album: String,
     pub songs: Vec<Song>,
+}
+
+#[derive(Template)]
+#[template(path = "settings.html")]
+pub struct SettingsTemplate {
+    pub tabs: TabsTemplate,
+    pub stats: mpd_client::responses::Stats,
+}
+
+mod filters {
+    use chrono::DateTime;
+    use std::fmt::Error;
+
+    pub fn duration(total_seconds: u64) -> ::askama::Result<String> {
+        let seconds = total_seconds % 60;
+        let minutes = (total_seconds / 60) % 60;
+        let hours = (total_seconds / 60) / 60;
+        Ok(format!("{:0>2}:{:0>2}:{:0>2}", hours, minutes, seconds))
+    }
+
+    pub fn datetime(unix_timestamp: &u64) -> ::askama::Result<String> {
+        let secs = *unix_timestamp as i64;
+        let datetime = DateTime::from_timestamp(secs, 0).ok_or(::askama::Error::Fmt(Error))?;
+        Ok(format!("{}", datetime.format("%Y-%m-%d %H:%M:%S+00:00")))
+    }
 }
 
 pub struct HtmlTemplate<T>(pub T);

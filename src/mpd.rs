@@ -390,4 +390,8 @@ impl Mpd {
             .await?;
         Ok(())
     }
+
+    pub async fn stats(&self) -> Result<mpd_client::responses::Stats> {
+        Ok(self.mpd_client.command(mpd_client::commands::Stats).await?)
+    }
 }

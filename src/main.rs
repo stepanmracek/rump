@@ -84,6 +84,7 @@ async fn main() {
         .route("/playlist/play/song", get(play_song_by_url))
         .route("/playlist/append/song", get(append_song_by_url))
         .route("/cover", get(get_cover))
+        .route("/settings", get(get_settings))
         .with_state(album_art_cache)
         .nest_service("/assets", ServeDir::new("assets"))
         .layer(TraceLayer::new_for_http());
@@ -96,6 +97,18 @@ async fn get_library() -> Result<impl IntoResponse, AppError> {
     let template = t::LibraryTemplate {
         tabs: t::TabsTemplate {
             library_active: true,
+            ..Default::default()
+        },
+    };
+    Ok(t::HtmlTemplate(template))
+}
+
+async fn get_settings() -> Result<impl IntoResponse, AppError> {
+    let stats = Mpd::connect().await?.stats().await?;
+    let template = t::SettingsTemplate {
+        stats,
+        tabs: t::TabsTemplate {
+            settings_active: true,
             ..Default::default()
         },
     };
