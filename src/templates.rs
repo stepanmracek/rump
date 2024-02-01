@@ -16,7 +16,7 @@ pub struct IndexTemplate {
 pub struct TabsTemplate {
     pub library_active: bool,
     pub playlist_active: bool,
-    pub settings_active: bool,
+    pub database_active: bool,
 }
 
 #[derive(Template)]
@@ -68,10 +68,16 @@ pub struct AlbumSongsTemplate {
 }
 
 #[derive(Template)]
-#[template(path = "settings.html")]
-pub struct SettingsTemplate {
+#[template(path = "database.html")]
+pub struct DatabaseTemplate {
     pub tabs: TabsTemplate,
     pub stats: mpd_client::responses::Stats,
+}
+
+#[derive(Template)]
+#[template(path = "database_update_status.html")]
+pub struct DatabaseUpdateStatusTemplate {
+    pub updating: bool,
 }
 
 mod filters {

@@ -20,6 +20,7 @@ pub struct Status {
     pub repeat: bool,
     pub random: bool,
     pub consume: bool,
+    pub ubdating_db: bool
 }
 
 pub struct SongInQueue {
@@ -251,6 +252,7 @@ impl Mpd {
             single_mode: status.single,
             repeat: status.repeat,
             random: status.random,
+            ubdating_db: status.update_job.is_some(),
         })
     }
 
