@@ -20,7 +20,7 @@ pub struct Status {
     pub repeat: bool,
     pub random: bool,
     pub consume: bool,
-    pub ubdating_db: bool
+    pub ubdating_db: bool,
 }
 
 pub struct SongInQueue {
