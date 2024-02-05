@@ -1,7 +1,5 @@
 {{ tabs|e("none") }}
 
-<div class="m-3">
-    <input name="q" class="form-control" placeholder="search" hx-get="/artists" hx-trigger="keyup changed delay:500ms" hx-target="#artists">
-</div>  
+<input name="q" placeholder="search" hx-get="/artists" hx-trigger="keyup changed delay:500ms" hx-target="#artists">
 
-<div id="artists" hx-get="/artists" hx-trigger="load"></div>
+<div id="artists" class="artists" hx-get="/artists" hx-trigger="load"></div>

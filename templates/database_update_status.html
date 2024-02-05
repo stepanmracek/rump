@@ -1,9 +1,8 @@
-{% if updating %}
-<div class="progress" role="progressbar">
-  <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 100%">
-    Datase is updating...
-  </div>
+<div>
+  {% if updating %}<span>Datase is updating...</span>{% endif %}
 </div>
-{% else %}
-<button type="button" class="btn btn-primary" hx-get="/database/update_db" hx-swap="none">Update DB</button>
-{% endif %}
+<div>
+  {% if !updating %}
+  <button hx-get="/database/update_db" hx-swap="none"><i class="fa-solid fa-rotate"></i></button>
+  {% endif %}
+</div>

@@ -1,36 +1,34 @@
 {{ tabs|e("none") }}
 
-<table class="table">
-  <tbody>
-    <tr>
-      <th scope="row">Artists</th>
+<table class="database">
+  <tr>
+      <th>Artists</th>
       <td>{{stats.artists}}</td>
-    </tr>
-    <tr>
-      <th scope="row">Albums</th>
+  </tr>
+  <tr>
+      <th>Albums</th>
       <td>{{stats.albums}}</td>
-    </tr>
-    <tr>
-      <th scope="row">Songs</th>
+  </tr>
+  <tr>
+      <th>Songs</th>
       <td>{{stats.songs}}</td>
-    </tr>
-    <tr>
-      <th scope="row">Uptime</th>
+  </tr>
+  <tr>
+      <th>Uptime</th>
       <td>{{stats.uptime.as_secs()|duration}}s</td>
-    </tr>
-    <tr>
-      <th scope="row">Playtime</th>
+  </tr>
+  <tr>
+      <th>Playtime</th>
       <td>{{stats.playtime.as_secs()|duration}}s</td>
-    </tr>
-    <tr>
-      <th scope="row">DB playtime</th>
+  </tr>
+  <tr>
+      <th>DB playtime</th>
       <td>{{stats.db_playtime.as_secs()|duration}}s</td>
-    </tr>
-    <tr>
-      <th scope="row">DB Updated</th>
+  </tr>
+  <tr>
+      <th>DB Updated</th>
       <td>{{stats.db_last_update|datetime}}</td>
-    </tr>
-  </tbody>
+  </tr>
 </table>
 
-<div hx-get="/database/update_status" hx-trigger="every 2s"></div>
+<div hx-get="/database/update_status" hx-trigger="every 2s" class="playlist-buttons"></div>

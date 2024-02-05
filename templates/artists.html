@@ -1,7 +1,5 @@
-<div class="list-group ps-3 pe-3 pb-3">
-    {% for artist in artists %}
-    <a href="#" class="list-group-item list-group-item-action" hx-get="/albums?artist={{artist|urlencode_strict}}" hx-trigger="click" hx-target="#content">
-        {{artist}}
-    </a>
-    {% endfor %}
-</div>
+{% for artist in artists %}
+<a href="#" hx-get="/albums?artist={{artist|urlencode_strict}}" hx-trigger="click" hx-target="#content">
+    {{artist}}
+</a>
+{% endfor %}

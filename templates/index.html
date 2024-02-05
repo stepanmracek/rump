@@ -6,27 +6,41 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>RUMP</title>
     <script src="/assets/htmx.min.js"></script>
-    <link href="/assets/bootstrap.min.css" rel="stylesheet">
+    <link href="/assets/style.css" rel="stylesheet">
+    <link href="https://fonts.cdnfonts.com/css/montserrat" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
 </head>
 
 {% match error %}
 {% when Some(error) %}
 <body>
-    <div class="container-sm">
-        <h1 class="display-1">Connection error</h1>
-        <div class="alert alert-danger" role="alert">
-            {{error}}
-        </div>
-    </div>
+    <h1 class="display-1">Connection error</h1>
+    <span>{{error}}</span>
 </body>
 {% when None %}
-<body hx-push-url="/">
-    <nav class="navbar bg-primary navbar-expand" data-bs-theme="dark">
-        <div class="container" hx-ws="connect:/status">
-            <div id="status" style="display: flex;" class="me-auto"></div>
-        </div>
-    </nav>
-    <div id="content" hx-get="/library" hx-trigger="load" class="container-sm"></div>
+<body hx-push-url="/" hx-ws="connect:/status">
+    <div id="navbar">
+        <a href="#" hx-get="/library" hx-target="#content" class="active">Library</a>
+        <a href="#" hx-get="/playlist" hx-target="#content">Playlist</a>
+        <!--a href="#">Now playing</a-->
+        <a href="#" hx-get="/database" hx-target="#content">Database</a>
+    </div>
+
+    <div id="main">
+        <div id="content" hx-get="/library" hx-trigger="load"></div>
+    </div>
+
+    <div id="statusbar">
+        <button class="skip" disabled>
+            <i class="fa-solid fa-backward-step"></i>
+        </button>
+        <button class="play" disabled>
+            <i class="fa-solid fa-play"></i>
+        </button>
+        <button class="skip" disabled>
+            <i class="fa-solid fa-forward-step"></i>
+        </button>
+    </div>
 </body>
 {% endmatch %}
 

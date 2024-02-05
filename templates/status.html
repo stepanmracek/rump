@@ -1,55 +1,41 @@
-<div id="status" style="display: flex;" class="me-auto">
-    <div class="ms-2 btn-group me-auto" role="group">
-        <button type="button" class="btn btn-outline-light" {% if !status.has_prev %}disabled{% endif %} hx-get="/control/prev">
-            <svg class="bi" width="32" height="32" fill="currentColor">
-                <use xlink:href="/assets/bootstrap-icons.svg#skip-backward-fill" />
-            </svg>
-        </button>
-        <button type="button" class="btn btn-outline-light" hx-swap="none"
-                {% if !status.has_song %}disabled{% endif %}
-                {% match status.play_state %}
-                {% when mpd_client::responses::PlayState::Stopped %}
-                hx-get="/control/play"
-                {% when mpd_client::responses::PlayState::Playing %}
-                hx-get="/control/pause"
-                {% when mpd_client::responses::PlayState::Paused %}
-                hx-get="/control/unpause"
-                {% endmatch %}
-        >
-            <svg class="bi" width="32" height="32" fill="currentColor">
-                {% match status.play_state %}
-                {% when mpd_client::responses::PlayState::Stopped %}
-                <use xlink:href="/assets/bootstrap-icons.svg#play-fill" />
-                {% when mpd_client::responses::PlayState::Playing %}
-                <use xlink:href="/assets/bootstrap-icons.svg#pause-fill" />
-                {% when mpd_client::responses::PlayState::Paused %}
-                <use xlink:href="/assets/bootstrap-icons.svg#play-fill" />
-                {% endmatch %}
-            </svg>
-        </button>
-        <button type="button" class="btn btn-outline-light" {% if !status.has_next %}disabled{% endif %} hx-get="/control/next">
-            <svg class="bi" width="32" height="32" fill="currentColor">
-                <use xlink:href="/assets/bootstrap-icons.svg#skip-forward-fill" />
-            </svg>
-        </button>
-    </div>
+<div id="statusbar">
+    <button class="skip" {% if !status.has_prev %}disabled{% endif %} hx-get="/control/prev" hx-swap="none">
+        <i class="fa-solid fa-backward-step"></i>
+    </button>
+    <button class="play" hx-swap="none"
+        {% if !status.has_song %}disabled{% endif %}
+        {% match status.play_state %}
+        {% when mpd_client::responses::PlayState::Stopped %}
+        hx-get="/control/play"
+        {% when mpd_client::responses::PlayState::Playing %}
+        hx-get="/control/pause"
+        {% when mpd_client::responses::PlayState::Paused %}
+        hx-get="/control/unpause"
+        {% endmatch %}
+    >
+        {% match status.play_state %}
+        {% when mpd_client::responses::PlayState::Stopped %}
+        <i class="fa-solid fa-play"></i>
+        {% when mpd_client::responses::PlayState::Playing %}
+        <i class="fa-solid fa-pause"></i>
+        {% when mpd_client::responses::PlayState::Paused %}
+        <i class="fa-solid fa-play"></i>
+        {% endmatch %}
+    </button>
+    <button class="skip" {% if !status.has_next %}disabled{% endif %} hx-get="/control/next">
+        <i class="fa-solid fa-forward-step"></i>
+    </button>
     {% if status.has_song %}
     {% match status.artist %}{% when Some with (artist) %}
     {% match status.album %}{% when Some with (album) %}
-    <img class="ms-2 width="48" height="48" src="/cover?artist={{artist|urlencode_strict}}&album={{album|urlencode_strict}}" style="border-radius: 0.375rem; border-color: white; border-width: 1px; border-style: solid;">
-    {% when None %}{% endmatch %}
-    {% when None %}{% endmatch %}
-    <div class="ms-2 text-white">
-        <strong class="text-truncate">
-            {% match status.artist %}{% when Some with (val) %}{{ val }}{% when None %}{% endmatch %}
-            -
-            {% match status.title %}{% when Some with (val) %}{{ val }}{% when None %}{% endmatch %}
-        </strong>
-        <br>
-        <span class="text-truncate">
-            {% match status.album %}{% when Some with (val) %}{{ val }}{% when None %}{% endmatch %}
-            {% match status.year %}{% when Some with (val) %}({{ val }}){% when None %}{% endmatch %}
-        </span>
+    <div class="current-song" hx-get="/songs?artist={{artist|urlencode_strict}}&album={{album|urlencode_strict}}" hx-target="#content" hx-trigger="click">
+        <img src="/cover?artist={{artist|urlencode_strict}}&album={{album|urlencode_strict}}">
+        <div>
+            <b class="ellipsis">{% match status.artist %}{% when Some with (val) %}{{ val }}{% when None %}{% endmatch %}</b>
+            <span class="ellipsis">{% match status.title %}{% when Some with (val) %}{{ val }}{% when None %}{% endmatch %}</span>
+        </div>
     </div>
+    {% when None %}{% endmatch %}
+    {% when None %}{% endmatch %}
     {% endif %}
 </div>

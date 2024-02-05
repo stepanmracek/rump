@@ -1,58 +1,45 @@
 <div id="playlist-songs">
-    <div class="list-group p-3">
+    <div class="playlist">
         {% for song in songs %}
-        <a href="#" class="list-group-item list-group-item-action text-truncate" hx-get="/control/play?song_id={{song.id|urlencode_strict}}" hx-swap="none">
-            <svg class="bi" width="32" height="32" fill="currentColor">
-                {%if song.playing %}
-                <use xlink:href="assets/bootstrap-icons.svg#music-note"/>
-                {% endif %}
-            </svg>          
+        <a {%if song.playing %}class="current"{% endif %} href="#" hx-get="/control/play?song_id={{song.id|urlencode_strict}}" hx-swap="none">
             {{song.artist}} - {{song.title}}
         </a>
         {% endfor %}
         {%if songs.is_empty() %}
-        <div class="list-group-item">( Empty )</div>       
+        <div>( Empty )</div>
         {% endif %}
     </div>
-    <div class="d-flex ps-3 pe-3 pb-3 justify-content-between">
-        <div class="btn-group" role="group" aria-label="Basic example">
-            <button type="button" class="btn btn-primary" hx-get="/control/toggle_repeat" hx-swap="none" title="Repeat: {% if status.repeat %}ON{% else %}OFF{% endif %}">
-                <svg class="bi" width="24" height="24" fill="currentColor">
-                    {% if status.repeat %}
-                    <use xlink:href="assets/bootstrap-icons.svg#repeat"/>
-                    {% else %}
-                    <use xlink:href="assets/bootstrap-icons.svg#arrow-right"/> Repeat: OFF
-                    {% endif %}
-                </svg>
+    <div class="playlist-buttons">
+        <div>
+            <button hx-get="/control/toggle_repeat" hx-swap="none" title="Repeat: {% if status.repeat %}ON{% else %}OFF{% endif %}">
+                {% if status.repeat %}
+                <i class="fa-solid fa-repeat"></i>
+                {% else %}
+                <i class="fa-solid fa-arrow-right"></i>
+                {% endif %}
             </button>
-            <button type="button" class="btn btn-primary" hx-get="/control/toggle_random" hx-swap="none" title="Shuffle: {% if status.random %}ON{% else %}OFF{% endif %}">
-                <svg class="bi" width="24" height="24" fill="currentColor">
-                    {% if status.random %}
-                    <use xlink:href="assets/bootstrap-icons.svg#shuffle"/>
-                    {% else %}
-                    <use xlink:href="assets/bootstrap-icons.svg#123"/>
-                    {% endif %}
-                </svg>
+            <button hx-get="/control/toggle_random" hx-swap="none" title="Shuffle: {% if status.random %}ON{% else %}OFF{% endif %}">
+                {% if status.random %}
+                <i class="fa-solid fa-shuffle"></i>
+                {% else %}
+                <i class="fa-solid fa-arrow-down-1-9"></i>
+                {% endif %}
             </button>
-            <!--button type="button" class="btn btn-primary">
-                <svg class="bi" width="24" height="24" fill="currentColor">
-                    {% match status.single_mode %}
-                    {% when mpd_client::commands::SingleMode::Enabled %}
-                    <use xlink:href="assets/bootstrap-icons.svg#1-circle"/>
-                    {% when mpd_client::commands::SingleMode::Disabled %}
-                    <use xlink:href="assets/bootstrap-icons.svg#list"/>
-                    {% when mpd_client::commands::SingleMode::Oneshot %}
-                    <use xlink:href="assets/bootstrap-icons.svg#indent"/>
-                    {% endmatch %}
-                </svg>
+            <!--button hx-get="..." hx-swap="none" title="...">
+                {% match status.single_mode %}
+                {% when mpd_client::commands::SingleMode::Enabled %}
+                <i class="fa-solid fa-..."></i>
+                {% when mpd_client::commands::SingleMode::Disabled %}
+                <i class="fa-solid fa-..."></i>
+                {% when mpd_client::commands::SingleMode::Oneshot %}
+                <i class="fa-solid fa-..."></i>
+                {% endmatch %}
             </button-->
         </div>
-        {%if !songs.is_empty() %}
-        <a href="#" class="btn btn-danger" hx-get="/playlist/clear" hx-swap="none">
-            <svg class="bi" width="24" height="24" fill="currentColor">
-                <use xlink:href="assets/bootstrap-icons.svg#trash"/>
-            </svg>
-        </a>
-        {% endif %}
+        <div>
+            <button {%if songs.is_empty() %}disabled{% endif %} hx-get="/playlist/clear" hx-swap="none">
+                <i class="fa-solid fa-trash-can"></i>
+            </button>
+        </div>
     </div>
 </div>

@@ -1,0 +1,479 @@
+html {
+    width: 100vw;
+    height: 100vh;
+}
+
+body {
+    width: 100vw;
+    height: 100vh;
+    padding: 0;
+    margin: 0;
+    background: linear-gradient(0deg, rgba(128, 128, 128, 1) 0%, rgba(64, 64, 64, 1) 100%);
+    color: rgba(255, 255, 255, 0.75);
+    font-family: 'Montserrat', sans-serif;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+
+h1 {
+    font-size: 32px;
+    margin-top: 0;
+    margin-bottom: 10px;
+}
+
+@media screen and (max-width: 720px) {
+    h1 {
+        font-size: 28px;
+        margin-bottom: 5px;
+    }
+}
+
+@media screen and (max-width: 540px) {
+    h1 {
+        font-size: 22px;
+        margin-bottom: 2px;
+    }
+}
+
+a {
+    color: rgba(255, 255, 255, 0.75);
+    text-decoration: none;
+}
+
+a:hover {
+    color: rgba(255, 255, 255, 0.95);
+}
+
+::placeholder {
+    color: rgb(255, 255, 255, 0.25);
+    opacity: 1
+}
+
+#navbar {
+    display: flex;
+    background-color: rgba(0, 0, 0, 0.25);
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.25);
+    flex-direction: column;
+    width: 192px;
+    height: calc(100vh - 64px);
+}
+
+#navbar>a {
+    margin: 20px;
+    margin-right: 0;
+    padding: 15px;
+    font-size: 16px;
+    border-top-left-radius: 10px;
+    border-bottom-left-radius: 10px;
+}
+
+#navbar>a.active {
+    background-color: rgba(255, 255, 255, 0.25);
+}
+
+@media screen and (max-width: 720px) {
+    #navbar {
+        width: 100%;
+        height: 64px;
+        flex-direction: row;
+    }
+
+    #navbar>a {
+        margin: 10px;
+        padding: 15px;
+        border-radius: 10px;
+    }
+}
+
+#main {
+    display: flex;
+    flex-direction: column;
+    width: calc(100vw - 212px);
+    height: calc(100vh - 84px);
+    overflow: auto;
+    align-items: center;
+    padding: 10px;
+}
+
+@media screen and (max-width: 720px) {
+    #main {
+        width: 100%;
+        height: calc(100vh - 148px);
+    }
+}
+
+#content {
+    display: flex;
+    flex-direction: column;
+    max-width: 1024px;
+    width: 100%;
+}
+
+#statusbar {
+    width: 100%;
+    background-color: rgba(192, 192, 192, 0.25);
+    height: 64px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.25);
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+}
+
+.spacer {
+    height: 512px;
+}
+
+button {
+    background-color: rgba(255, 255, 255, 0.5);
+    border: 0;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.25);
+    font-family: inherit;
+    transition: all 0.1s;
+}
+
+button:hover {
+    background-color: rgba(255, 255, 255, 0.75);
+}
+
+button:active {
+    background-color: rgba(255, 255, 255, 0.25);
+    box-shadow: 0 0 2px rgba(0, 0, 0, 0.25);
+}
+
+button:disabled {
+    background-color: rgba(255, 255, 255, 0.25);
+}
+
+#statusbar>button {
+    margin: 3px;
+}
+
+#statusbar>.play {
+    width: 48px;
+    height: 48px;
+    border-radius: 24px;
+}
+
+#statusbar>.skip {
+    width: 36px;
+    height: 36px;
+    border-radius: 18px;
+}
+
+.current-song {
+    display: flex;
+    flex-direction: row;
+    cursor: pointer;
+}
+
+.current-song img {
+    width: 48px;
+    height: 48px;
+    border: 5px solid rgba(255, 255, 255, 0.25);
+    border-radius: 5px;
+    margin-left: 10px;
+    box-shadow: 0 0 2px rgba(0, 0, 0, 0.25);
+}
+
+.current-song img:hover {
+    border: 5px solid rgba(255, 255, 255, 0.5);
+    transition: all 0.25s;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.25);
+}
+
+.current-song div {
+    display: flex;
+    flex-direction: column;
+    width: 256px;
+    margin-left: 10px;
+    justify-content: space-evenly;
+}
+
+@media screen and (max-width: 720px) {
+    #statusbar {
+        justify-content: flex-start;
+    }
+
+    .current-song img {
+        visibility: collapse;
+        display: none;
+    }
+
+    .current-song div {
+        width: calc(100vw - 160px);
+    }
+}
+
+input {
+    background-color: rgba(255, 255, 255, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.30);
+    font-size: 20px;
+    border-radius: 5px;
+    height: 36px;
+    color: rgba(255, 255, 255, 0.75);
+    padding-left: 10px;
+    padding-right: 10px;
+}
+
+.albums {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+
+.album {
+    background-color: rgba(255, 255, 255, 0.25);
+    margin: 5px;
+    padding: 10px;
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.25);
+    display: flex;
+    flex-direction: column;
+    cursor: pointer;
+    transition: all 0.25s;
+}
+
+.album>* {
+    width: 192px;
+}
+
+.album:hover {
+    background-color: rgba(255, 255, 255, 0.5);
+    padding: 14px;
+    margin: 1px;
+}
+
+.album button {
+    display: flex;
+    flex-direction: row;
+    align-items: baseline;
+    justify-content: center;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+.album button>span {
+    margin-left: 5px;
+}
+
+@media screen and (max-width: 720px) {
+    .album>* {
+        width: 128px;
+    }
+
+    .album button {
+        width: 32px;
+        height: 32px;
+        border-radius: 16px;
+    }
+
+    .album button>span {
+        visibility: collapse;
+        display: none;
+    }
+}
+
+.album-cover {
+    border-radius: 5px;
+    margin-bottom: 5px;
+}
+
+.album>div:last-child {
+    display: flex;
+    flex-direction: row;
+}
+
+.album>div {
+    margin-top: 5px;
+}
+
+.album>div:last-child>button {
+    margin-left: 10px;
+}
+
+.album>div:last-child>button:nth-child(1) {
+    margin-left: 0px;
+}
+
+.ellipsis {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.artists {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    margin-top: 10px;
+}
+
+.artists>a {
+    margin: 0px;
+    padding: 10px;
+    width: 23%;
+    min-width: 164px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: all 0.25s;
+}
+
+.artists>a:hover {
+    background-color: rgba(255, 255, 255, 0.25);
+    border-radius: 5px;
+}
+
+.artists>h1 {
+    width: 100%;
+    margin: 10px;
+}
+
+.album-header {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+.album-header>div:nth-child(1) {
+    margin-left: 5px;
+    padding: 10px;
+    background-color: rgba(255, 255, 255, 0.25);
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.25);
+    display: flex;
+}
+
+.album-header>div:nth-child(1)>img {
+    border-radius: 5px;
+    width: 192px;
+    height: 192px;
+}
+
+.album-header>div:nth-child(2) {
+    margin-left: 20px;
+}
+
+@media screen and (max-width: 720px) {
+    .album-header>div:nth-child(1)>img {
+        width: 128px;
+        height: 128px;
+    }
+}
+
+@media screen and (max-width: 540px) {
+    .album-header>div:nth-child(1) {
+        display: none;
+        visibility: collapse;
+    }
+
+    .album-header>div:nth-child(2) {
+        margin-left: 10px;
+    }
+}
+
+.album-header button {
+    padding: 10px;
+    margin-top: 10px;
+    border-radius: 3px;
+    margin-left: 10px;
+}
+
+.album-header button:nth-child(1) {
+    margin-left: 0px;
+}
+
+.album-songs {
+    background-color: rgba(255, 255, 255, 0.1);
+    margin: 5px;
+    padding: 10px;
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.25);
+    display: flex;
+    flex-direction: column;
+}
+
+.album-songs>div {
+    display: flex;
+    flex-direction: row;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.25);
+    padding: 10px;
+    align-items: baseline;
+}
+
+.album-songs>div:last-child {
+    border-bottom: 0;
+}
+
+.album-songs>div>span {
+    flex-grow: 1;
+}
+
+.album-songs>div>button {
+    border: 0;
+    margin: 5px;
+    background: transparent;
+    border: 0;
+    box-shadow: 0 0 0;
+    color: rgba(255, 255, 255, 0.75);
+}
+
+.album-songs div button:hover {
+    color: rgba(255, 255, 255);
+    cursor: pointer;
+}
+
+.album-songs div button:active {
+    color: rgba(255, 255, 255, 0.25);
+}
+
+.playlist {
+    background-color: rgba(255, 255, 255, 0.1);
+    margin: 5px;
+    padding: 10px;
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.25);
+    display: flex;
+    flex-direction: column;
+}
+
+.playlist>* {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.25);
+    padding: 10px;
+}
+
+.playlist>*:last-child {
+    border-bottom: 0;
+}
+
+.playlist>a.current {
+    font-weight: bold;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.1) 0%, transparent 100%);
+}
+
+.playlist-buttons {
+    margin: 5px;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+}
+
+.playlist-buttons button {
+    padding: 10px;
+    border-radius: 5px;
+    width: 64px;
+}
+
+.database {
+    background-color: rgba(255, 255, 255, 0.1);
+    margin: 5px;
+    padding: 10px;
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.25);
+}
+
+.database tr>* {
+    width: 50%;
+}

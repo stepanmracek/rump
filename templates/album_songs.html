@@ -1,25 +1,31 @@
 {{ tabs|e("none") }}
 
-<H3 class="p-3"><a href="#" hx-get="/albums?artist={{artist|urlencode_strict}}" hx-target="#content">{{artist}}</a>: {{album}}</H3>
-
-<div class="list-group ps-3 pe-3 pb-3">
+<div class="album-header">
+    <div><img src="/cover?artist={{artist|urlencode_strict}}&album={{album|urlencode_strict}}"></div>
+    <div>
+        <h1 class="ellipsis">{{artist}}</h1>
+        <h1 class="ellipsis">{{album}}</h1>
+        <!--span>year</span-->
+        <div>
+            <button hx-get="/playlist/play/album?artist={{artist|urlencode_strict}}&album={{album|urlencode_strict}}" hx-swap="none">
+                <i class="fa-solid fa-play"></i> Play
+            </button>
+            <button hx-get="/playlist/append/album?artist={{artist|urlencode_strict}}&album={{album|urlencode_strict}}" hx-swap="none">
+                <i class="fa-solid fa-square-plus"></i> Append
+            </button>
+        </div>
+    </div>
+</div>
+<div class="album-songs">
     {% for song in songs %}
-    <div class="list-group-item d-flex justify-content-between align-items-baseline">
-        <span class="me-auto">
-            {{song.title}}
-        </span>
-
-        <button type="button" class="btn btn-link" hx-get="/playlist/play/song?url={{song.url|urlencode_strict}}" hx-swap="none">
-            <svg class="bi" width="24" height="24" fill="currentColor">
-                <use xlink:href="assets/bootstrap-icons.svg#play-fill"/>
-            </svg>
+    <div>
+        <span>{{song.title}}</span>
+        <button hx-get="/playlist/play/song?url={{song.url|urlencode_strict}}" hx-swap="none">
+            <i class="fa-solid fa-play"></i>
         </button>
-        <button type="button" class="btn btn-link" hx-get="/playlist/append/song?url={{song.url|urlencode_strict}}" hx-swap="none">
-            <svg class="bi" width="24" height="24" fill="currentColor">
-                <use xlink:href="assets/bootstrap-icons.svg#plus-circle-fill"/>
-            </svg>
+        <button hx-get="/playlist/append/song?url={{song.url|urlencode_strict}}" hx-swap="none">
+            <i class="fa-solid fa-square-plus"></i>
         </button>
     </div>
-
     {% endfor %}
 </div>
