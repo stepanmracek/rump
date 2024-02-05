@@ -10,7 +10,7 @@ body {
     margin: 0;
     background: linear-gradient(0deg, rgba(128, 128, 128, 1) 0%, rgba(64, 64, 64, 1) 100%);
     color: rgba(255, 255, 255, 0.75);
-    font-family: 'Montserrat', sans-serif;
+    /*font-family: 'Montserrat', sans-serif;*/
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
