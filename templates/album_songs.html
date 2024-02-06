@@ -8,10 +8,10 @@
         <!--span>year</span-->
         <div>
             <button hx-get="/playlist/play/album?artist={{artist|urlencode_strict}}&album={{album|urlencode_strict}}" hx-swap="none">
-                <i class="fa-solid fa-play"></i> Play
+                <i class="fa-solid fa-play"></i><span>Play</span>
             </button>
             <button hx-get="/playlist/append/album?artist={{artist|urlencode_strict}}&album={{album|urlencode_strict}}" hx-swap="none">
-                <i class="fa-solid fa-square-plus"></i> Append
+                <i class="fa-solid fa-square-plus"></i><span>Append</span>
             </button>
         </div>
     </div>

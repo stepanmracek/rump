@@ -10,10 +10,15 @@ body {
     margin: 0;
     background: linear-gradient(0deg, rgba(128, 128, 128, 1) 0%, rgba(64, 64, 64, 1) 100%);
     color: rgba(255, 255, 255, 0.75);
-    /*font-family: 'Montserrat', sans-serif;*/
+    font-family: /*'Montserrat',*/ sans-serif;
+    font-size: 15px;
     display: flex;
     flex-direction: row;
-    flex-wrap: wrap;
+}
+@media screen and (max-width: 768px) {
+    body {
+        flex-direction: column;
+    }
 }
 
 h1 {
@@ -22,7 +27,7 @@ h1 {
     margin-bottom: 10px;
 }
 
-@media screen and (max-width: 720px) {
+@media screen and (max-width: 768px) {
     h1 {
         font-size: 28px;
         margin-bottom: 5px;
@@ -72,7 +77,12 @@ a:hover {
     background-color: rgba(255, 255, 255, 0.25);
 }
 
-@media screen and (max-width: 720px) {
+#navbar>a>i {
+    visibility: collapse;
+    display: none;
+}
+
+@media screen and (max-width: 768px) {
     #navbar {
         width: 100%;
         height: 64px;
@@ -85,21 +95,31 @@ a:hover {
         border-radius: 10px;
     }
 }
+@media screen and (max-width: 425px) {
+    #navbar>a>i {
+        visibility: visible;
+        display: initial;
+    }
+    #navbar>a>span {
+        visibility: collapse;
+        display: none;
+    }
+}
 
 #main {
     display: flex;
     flex-direction: column;
-    width: calc(100vw - 212px);
-    height: calc(100vh - 84px);
+    height: calc(100vh - 64px - 2*10px);
+    flex-grow: 1;
     overflow: auto;
     align-items: center;
     padding: 10px;
 }
 
-@media screen and (max-width: 720px) {
+@media screen and (max-width: 768px) {
     #main {
-        width: 100%;
-        height: calc(100vh - 148px);
+        height: calc(100vh - 64px - 2*10px - 64px);
+        flex-grow: 0;
     }
 }
 
@@ -112,13 +132,16 @@ a:hover {
 
 #statusbar {
     width: 100%;
-    background-color: rgba(192, 192, 192, 0.25);
+    background-color: rgba(128, 128, 128, 1);
     height: 64px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.25);
     display: flex;
     flex-direction: row;
     align-items: center;
     justify-content: center;
+    position: fixed;
+    left: 0;
+    bottom: 0;
 }
 
 .spacer {
@@ -190,8 +213,16 @@ button:disabled {
     margin-left: 10px;
     justify-content: space-evenly;
 }
+@media screen and (max-width: 768px) {
+    #statusbar {
+        justify-content: flex-start;
+    }
 
-@media screen and (max-width: 720px) {
+    .current-song div {
+        width: calc(100vw - 220px);
+    }
+}
+@media screen and (max-width: 425px) {
     #statusbar {
         justify-content: flex-start;
     }
@@ -239,6 +270,11 @@ input {
     width: 192px;
 }
 
+.album>img {
+    height: 192px;
+    background: linear-gradient(0deg, rgba(128, 128, 128, 1) 0%, rgba(64, 64, 64, 1) 100%);
+}
+
 .album:hover {
     background-color: rgba(255, 255, 255, 0.5);
     padding: 14px;
@@ -258,9 +294,12 @@ input {
     margin-left: 5px;
 }
 
-@media screen and (max-width: 720px) {
+@media screen and (max-width: 768px) {
     .album>* {
         width: 128px;
+    }
+    .album>img {
+        height: 128px;
     }
 
     .album button {
@@ -273,6 +312,19 @@ input {
         visibility: collapse;
         display: none;
     }
+}
+
+@media screen and (max-width: 425px) {
+    .album {
+        margin: 3px;
+        padding: 5px;
+    }
+
+    .album:hover {
+        margin: 1px;
+        padding: 7px;
+    }
+
 }
 
 .album-cover {
@@ -313,12 +365,26 @@ input {
 .artists>a {
     margin: 0px;
     padding: 10px;
-    width: 23%;
-    min-width: 164px;
+    width: calc(25% - 20px);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     transition: all 0.25s;
+}
+@media screen and (max-width: 1024px) {
+    .artists>a {
+        width: calc(33% - 20px);
+    }
+}
+@media screen and (max-width: 425px) {
+    .artists>a {
+        width: calc(50% - 20px);
+    }
+}
+@media screen and (max-width: 320px) {
+    .artists>a {
+        width: 100%;
+    }
 }
 
 .artists>a:hover {
@@ -335,10 +401,10 @@ input {
     display: flex;
     flex-direction: row;
     align-items: center;
+    margin-bottom: 10px;
 }
 
 .album-header>div:nth-child(1) {
-    margin-left: 5px;
     padding: 10px;
     background-color: rgba(255, 255, 255, 0.25);
     border-radius: 5px;
@@ -356,7 +422,12 @@ input {
     margin-left: 20px;
 }
 
-@media screen and (max-width: 720px) {
+.album-header>div:nth-child(2)>div {
+    display: flex;
+    flex-direction: row;
+}
+
+@media screen and (max-width: 768px) {
     .album-header>div:nth-child(1)>img {
         width: 128px;
         height: 128px;
@@ -375,10 +446,18 @@ input {
 }
 
 .album-header button {
-    padding: 10px;
     margin-top: 10px;
-    border-radius: 3px;
     margin-left: 10px;
+    padding: 10px;
+    border-radius: 5px;
+    display: flex;
+    flex-direction: row;
+    align-items: baseline;
+    justify-content: center;
+}
+
+.album-header button>span {
+    margin-left: 5px;
 }
 
 .album-header button:nth-child(1) {
@@ -387,7 +466,6 @@ input {
 
 .album-songs {
     background-color: rgba(255, 255, 255, 0.1);
-    margin: 5px;
     padding: 10px;
     border-radius: 5px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.25);
@@ -431,12 +509,12 @@ input {
 
 .playlist {
     background-color: rgba(255, 255, 255, 0.1);
-    margin: 5px;
     padding: 10px;
     border-radius: 5px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.25);
     display: flex;
     flex-direction: column;
+    margin-bottom: 10px;
 }
 
 .playlist>* {
@@ -454,7 +532,6 @@ input {
 }
 
 .playlist-buttons {
-    margin: 5px;
     display: flex;
     flex-direction: row;
     justify-content: space-between;
@@ -468,10 +545,10 @@ input {
 
 .database {
     background-color: rgba(255, 255, 255, 0.1);
-    margin: 5px;
     padding: 10px;
     border-radius: 5px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.25);
+    margin-bottom: 10px;
 }
 
 .database tr>* {
