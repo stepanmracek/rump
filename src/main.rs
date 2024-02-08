@@ -87,6 +87,8 @@ async fn main() {
         .route("/database", get(get_database))
         .route("/database/update_db", get(update_db))
         .route("/database/update_status", get(update_status))
+        .route("/now_playing", get(get_now_playing))
+        .route("/now_playing/content", get(get_now_playing_content))
         .with_state(album_art_cache)
         .nest_service("/assets", ServeDir::new("assets"))
         .layer(TraceLayer::new_for_http());
@@ -377,6 +379,43 @@ async fn get_cover(
     }
 
     Ok(art)
+}
+
+async fn get_now_playing() -> Result<impl IntoResponse, AppError> {
+    let template = t::NowPlayingTemplate {
+        tabs: t::TabsTemplate {
+            now_playing_active: true,
+            ..Default::default()
+        },
+    };
+    Ok(t::HtmlTemplate(template))
+}
+
+async fn get_now_playing_content(ws: WebSocketUpgrade) -> impl IntoResponse {
+    ws.on_upgrade(handle_ws_now_playing)
+}
+
+async fn handle_ws_now_playing(mut socket: WebSocket) {
+    let mpd = Mpd::connect().await;
+    if mpd.is_err() {
+        return;
+    }
+    let mpd = mpd.unwrap();
+
+    loop {
+        if send_now_playing_content(&mpd, &mut socket).await.is_err() {
+            return;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+    }
+}
+
+async fn send_now_playing_content(mpd: &Mpd, socket: &mut WebSocket) -> anyhow::Result<()> {
+    let status = mpd.get_status().await?;
+    let template = t::NowPlayingContentTemplate { status }.render()?;
+    socket.send(template.into()).await?;
+
+    Ok(())
 }
 
 struct AppError(anyhow::Error);

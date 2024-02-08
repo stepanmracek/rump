@@ -17,6 +17,7 @@ pub struct TabsTemplate {
     pub library_active: bool,
     pub playlist_active: bool,
     pub database_active: bool,
+    pub now_playing_active: bool,
 }
 
 #[derive(Template)]
@@ -80,6 +81,29 @@ pub struct DatabaseUpdateStatusTemplate {
     pub updating: bool,
 }
 
+#[derive(Template)]
+#[template(path = "now_playing.html")]
+pub struct NowPlayingTemplate {
+    pub tabs: TabsTemplate,
+}
+
+#[derive(Template)]
+#[template(path = "now_playing_content.html")]
+pub struct NowPlayingContentTemplate {
+    pub status: Status,
+}
+
+impl NowPlayingContentTemplate {
+    pub fn progress(&self) -> Option<u64> {
+        if let Some(elapsed) = &self.status.elapsed {
+            if let Some(duration) = &self.status.duration {
+                return Some(elapsed * 100 / duration);
+            }
+        }
+        None
+    }
+}
+
 mod filters {
     use chrono::DateTime;
     use std::fmt::Error;
@@ -89,6 +113,13 @@ mod filters {
         let minutes = (total_seconds / 60) % 60;
         let hours = (total_seconds / 60) / 60;
         Ok(format!("{:0>2}:{:0>2}:{:0>2}", hours, minutes, seconds))
+    }
+
+    pub fn duration_m_s(total_seconds: &&u64) -> ::askama::Result<String> {
+        let total_seconds = **total_seconds;
+        let seconds = total_seconds % 60;
+        let minutes = total_seconds / 60;
+        Ok(format!("{:0>2}:{:0>2}", minutes, seconds))
     }
 
     pub fn datetime(unix_timestamp: &u64) -> ::askama::Result<String> {

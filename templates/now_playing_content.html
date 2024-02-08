@@ -1,0 +1,74 @@
+<div id="now-playing-content">
+    {% if status.has_song %}
+
+    {% match status.artist %}
+    {% when Some(artist) %}
+    {% match status.album %}
+    {% when Some(album) %}
+    <div class="cover">
+        <img src="/cover?artist={{artist|urlencode_strict}}&album={{album|urlencode_strict}}">
+    </div>
+    {% when None %}
+    {% endmatch %}
+    {% when None %}
+    {% endmatch %}
+
+    {% match status.title %}
+    {% when Some(title) %}
+    <h1 class="ellipsis">{{title}}</h1>
+    {% when None %}
+    {% endmatch %}
+
+    {% match status.artist %}
+    {% when Some(artist) %}
+    <span>by</span> <h1 class="ellipsis">
+        <a href="#" hx-get="/albums?artist={{artist|urlencode_strict}}" hx-target="#content">
+            {{artist}}
+        </a>
+    </h1>
+    
+    {% match status.album %}
+    {% when Some(album) %}
+    <span>from</span> <h1 class="ellipsis">
+        <a href="#" hx-get="/songs?artist={{artist|urlencode_strict}}&album={{album|urlencode_strict}}" hx-target="#content">
+            {{album}}
+        </a>
+    </h1>
+    {% when None %}
+    {% endmatch %}
+    {% when None %}
+    {% endmatch %}
+
+
+    <div class="progress">
+        <span>
+            {% match status.elapsed %}
+            {% when Some(song_elapsed) %}
+            {{ song_elapsed|duration_m_s }}
+            {% when None %}
+            00:00
+            {% endmatch %}
+        </span>
+        <div>
+            {% match Self::progress(self) %}
+            {% when Some(progress) %}
+            <div style="left: calc({{progress}}% - 8px);"></div>
+            {% when None %}
+            {% endmatch %}
+        </div>
+        <span>
+            {% match status.duration %}
+            {% when Some(song_duration) %}
+            {{ song_duration|duration_m_s }}</span>
+            {% when None %}
+            00:00
+            {% endmatch %}
+    </div>
+
+    {% else %}
+
+    <h1 class="ellipsis">Playlist is empty</h1>
+
+    {% endif %}
+
+</div>

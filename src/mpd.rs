@@ -21,6 +21,8 @@ pub struct Status {
     pub random: bool,
     pub consume: bool,
     pub ubdating_db: bool,
+    pub elapsed: Option<u64>,
+    pub duration: Option<u64>,
 }
 
 pub struct SongInQueue {
@@ -238,6 +240,8 @@ impl Mpd {
         let year = current_song
             .as_ref()
             .and_then(|song| get_single_tag_value::<i32>(&song.song, &mpd_client::tag::Tag::Date));
+        let elapsed = status.elapsed.map(|e| e.as_secs());
+        let duration = status.duration.map(|d| d.as_secs());
 
         Ok(Status {
             title,
@@ -253,6 +257,8 @@ impl Mpd {
             repeat: status.repeat,
             random: status.random,
             ubdating_db: status.update_job.is_some(),
+            elapsed,
+            duration,
         })
     }
 

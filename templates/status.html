@@ -28,7 +28,7 @@
     {% if status.has_song %}
     {% match status.artist %}{% when Some with (artist) %}
     {% match status.album %}{% when Some with (album) %}
-    <div class="current-song" hx-get="/songs?artist={{artist|urlencode_strict}}&album={{album|urlencode_strict}}" hx-target="#content" hx-trigger="click">
+    <div class="current-song" hx-get="/now_playing" hx-target="#content" hx-trigger="click">
         <img src="/cover?artist={{artist|urlencode_strict}}&album={{album|urlencode_strict}}">
         <div>
             <b class="ellipsis">{% match status.artist %}{% when Some with (val) %}{{ val }}{% when None %}{% endmatch %}</b>
