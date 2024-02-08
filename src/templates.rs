@@ -95,10 +95,10 @@ pub struct NowPlayingContentTemplate {
 }
 
 impl NowPlayingContentTemplate {
-    pub fn progress(&self) -> Option<u64> {
+    pub fn progress(&self) -> Option<f64> {
         if let Some(elapsed) = &self.status.elapsed {
             if let Some(duration) = &self.status.duration {
-                return Some(elapsed * 100 / duration);
+                return Some((*elapsed as f64) * 100.0 / (*duration as f64));
             }
         }
         None
