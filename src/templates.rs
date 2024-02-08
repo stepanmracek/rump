@@ -72,6 +72,7 @@ pub struct AlbumSongsTemplate {
 #[template(path = "database.html")]
 pub struct DatabaseTemplate {
     pub tabs: TabsTemplate,
+    pub mpd_addr: String,
     pub stats: mpd_client::responses::Stats,
 }
 

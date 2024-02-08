@@ -58,11 +58,15 @@ where
         .and_then(|d| d.parse::<T>().ok())
 }
 
+pub fn mpd_addr() -> String {
+    let host = std::env::var("MPD_HOST").unwrap_or("localhost".to_string());
+    let port = std::env::var("MPD_PORT").unwrap_or("6600".to_string());
+    format!("{host}:{port}")
+}
+
 impl Mpd {
     pub async fn connect() -> Result<Self> {
-        let host = std::env::var("MPD_HOST").unwrap_or("localhost".to_string());
-        let port = std::env::var("MPD_PORT").unwrap_or("6600".to_string());
-        let addr = format!("{host}:{port}");
+        let addr = mpd_addr();
         let connection = tokio::net::TcpStream::connect(addr).await;
         let (mpd_client, connection_events) = mpd_client::Client::connect(connection?).await?;
         Ok(Self {

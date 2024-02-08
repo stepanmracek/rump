@@ -111,6 +111,7 @@ async fn get_database() -> Result<impl IntoResponse, AppError> {
     let stats = Mpd::connect().await?.stats().await?;
     let template = t::DatabaseTemplate {
         stats,
+        mpd_addr: mpd::mpd_addr(),
         tabs: t::TabsTemplate {
             database_active: true,
             ..Default::default()

@@ -1,6 +1,10 @@
 {{ tabs|e("none") }}
 
 <table class="database">
+    <tr>
+        <th>MPD server</th>
+        <td>{{mpd_addr}}</td>
+    </tr>  
   <tr>
       <th>Artists</th>
       <td>{{stats.artists}}</td>
@@ -31,4 +35,4 @@
   </tr>
 </table>
 
-<div hx-get="/database/update_status" hx-trigger="every 2s" class="playlist-buttons"></div>
+<div hx-get="/database/update_status" hx-trigger="load, every 2s" class="playlist-buttons"></div>
