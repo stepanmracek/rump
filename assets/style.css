@@ -267,6 +267,7 @@ input {
     cursor: pointer;
     transition: all 0.25s;
     width: calc(25% - 2*10px - 2*5px);
+    pointer-events: none;
 }
 
 .album:hover {
@@ -282,6 +283,7 @@ input {
     justify-content: center;
     padding: 10px;
     border-radius: 5px;
+    pointer-events: auto;
 }
 
 @media screen and (max-width: 1024px) {
@@ -328,6 +330,7 @@ input {
 .album>img {
     aspect-ratio: 1;
     background: linear-gradient(0deg, rgba(255, 255, 255, 0.25) 0%, rgba(192, 192, 192, 0.5) 100%);
+    pointer-events: auto;
 }
 
 .album button>span {
