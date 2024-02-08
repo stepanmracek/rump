@@ -147,11 +147,11 @@ impl Mpd {
                             img.width(),
                             img.height()
                         );
-                        if img.width() > 192 {
+                        if img.width() > 256 {
                             let img = image::imageops::resize(
                                 &img,
-                                192,
-                                192,
+                                256,
+                                256,
                                 image::imageops::FilterType::Triangle,
                             );
                             let mut cursor = std::io::Cursor::new(vec![]);

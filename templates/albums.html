@@ -3,11 +3,9 @@
 <h1>{{artist}}</h1>
 <div class="albums">
 {% for album in albums %}
-<div class="album">
+<div class="album" hx-get="/songs?artist={{artist|urlencode_strict}}&album={{album.album_name|urlencode_strict}}" hx-target="#content" hx-trigger="click">
     <img class="album-cover"
-        src="/cover?artist={{artist|urlencode_strict}}&album={{album.album_name|urlencode_strict}}"
-        hx-get="/songs?artist={{artist|urlencode_strict}}&album={{album.album_name|urlencode_strict}}" hx-target="#content" hx-trigger="click"
-        >
+        src="/cover?artist={{artist|urlencode_strict}}&album={{album.album_name|urlencode_strict}}">
     <b class="ellipsis">{{album.album_name}}</b>
     <div>
         {% match album.year %}

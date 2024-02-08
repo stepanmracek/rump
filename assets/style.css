@@ -266,15 +266,7 @@ input {
     flex-direction: column;
     cursor: pointer;
     transition: all 0.25s;
-}
-
-.album>* {
-    width: 192px;
-}
-
-.album>img {
-    height: 192px;
-    background: linear-gradient(0deg, rgba(255, 255, 255, 0.25) 0%, rgba(192, 192, 192, 0.5) 100%);
+    width: calc(25% - 2*10px - 2*5px);
 }
 
 .album:hover {
@@ -292,16 +284,16 @@ input {
     border-radius: 5px;
 }
 
-.album button>span {
-    margin-left: 5px;
+@media screen and (max-width: 1024px) {
+    .album {
+        width: calc(33% - 2*10px - 2*5px);
+    }
 }
 
 @media screen and (max-width: 768px) {
-    .album>* {
-        width: 128px;
-    }
-    .album>img {
-        height: 128px;
+    .album button>span {
+        visibility: collapse;
+        display: none;
     }
 
     .album button {
@@ -309,24 +301,37 @@ input {
         height: 32px;
         border-radius: 16px;
     }
-
-    .album button>span {
-        visibility: collapse;
-        display: none;
-    }
 }
 
 @media screen and (max-width: 425px) {
     .album {
-        margin: 3px;
-        padding: 5px;
+        width: calc(50% - 2*10px - 2*5px);
+    }
+}
+
+@media screen and (max-width: 320px) {
+    .album {
+        width: calc(50% - 4*4px);
+    }
+
+    .album {
+        margin: 4px;
+        padding: 4px;
     }
 
     .album:hover {
         margin: 1px;
         padding: 7px;
     }
+}
 
+.album>img {
+    aspect-ratio: 1;
+    background: linear-gradient(0deg, rgba(255, 255, 255, 0.25) 0%, rgba(192, 192, 192, 0.5) 100%);
+}
+
+.album button>span {
+    margin-left: 5px;
 }
 
 .album-cover {
