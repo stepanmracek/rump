@@ -98,7 +98,7 @@ impl NowPlayingContentTemplate {
     pub fn progress(&self) -> Option<f64> {
         if let Some(elapsed) = &self.status.elapsed {
             if let Some(duration) = &self.status.duration {
-                return Some((*elapsed as f64) * 100.0 / (*duration as f64));
+                return Some(elapsed * 100.0 / duration);
             }
         }
         None
@@ -116,8 +116,8 @@ mod filters {
         Ok(format!("{:0>2}:{:0>2}:{:0>2}", hours, minutes, seconds))
     }
 
-    pub fn duration_m_s(total_seconds: &&u64) -> ::askama::Result<String> {
-        let total_seconds = **total_seconds;
+    pub fn duration_m_s(total_seconds: &&f64) -> ::askama::Result<String> {
+        let total_seconds = (**total_seconds) as u64;
         let seconds = total_seconds % 60;
         let minutes = total_seconds / 60;
         Ok(format!("{:0>2}:{:0>2}", minutes, seconds))
