@@ -1,5 +1,5 @@
 {% for artist in artists %}
-<a href="#" hx-get="/albums?artist={{artist|urlencode_strict}}" hx-trigger="click" hx-target="#content">
+<a href="#" hx-get="/albums?artist={{artist|urlencode_strict}}" hx-push-url="true" hx-target="#content">
     {{artist}}
 </a>
 {% endfor %}

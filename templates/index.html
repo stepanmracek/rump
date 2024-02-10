@@ -18,11 +18,26 @@
     <span>{{error}}</span>
 </body>
 {% when None %}
-<body hx-push-url="/" hx-ws="connect:/status">
-    <div id="navbar"></div>
+<body hx-ws="connect:/status">
+    {{tabs|e("none")}}
 
     <div id="main">
-        <div id="content" hx-get="/library" hx-trigger="load"></div>
+        <div id="content">
+            {% match page %}
+            {% when Page::Library(library) %}
+            {{library|e("none")}}
+            {% when Page::Albums(albums) %}
+            {{albums|e("none")}}
+            {% when Page::Songs(songs) %}
+            {{songs|e("none")}}
+            {% when Page::NowPlaying(now_playing) %}
+            {{now_playing|e("none")}}
+            {% when Page::Database(database) %}
+            {{database|e("none")}}
+            {% when Page::Playlist(playlist) %}
+            {{playlist|e("none")}}
+            {% endmatch %}
+        </div>
     </div>
 
     <div id="statusbar">

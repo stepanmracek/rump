@@ -1,4 +1,8 @@
+{% match tabs %}
+{% when Some(tabs) %}
 {{ tabs|e("none") }}
+{% when None %}
+{% endmatch %}
 
 <div class="album-header">
     <div><img src="/cover?artist={{artist|urlencode_strict}}&album={{album|urlencode_strict}}"></div>

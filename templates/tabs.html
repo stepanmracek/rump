@@ -1,14 +1,14 @@
 <div id="navbar" hx-swap-oob="true">
-    <a href="#" hx-get="/library" hx-target="#content" {%if library_active %}class="active"{% endif %}>
+    <a href="#" hx-get="/library" hx-push-url="true" hx-target="#content" {%if library_active %}class="active"{% endif %}>
         <i class="fa-solid fa-compact-disc"></i><span>Library</span>
     </a>
-    <a href="#" hx-get="/playlist" hx-target="#content" {%if playlist_active %}class="active"{% endif %}>
+    <a href="#" hx-get="/playlist" hx-push-url="true" hx-target="#content" {%if playlist_active %}class="active"{% endif %}>
         <i class="fa-solid fa-list-ol"></i><span>Playlist</span>
     </a>
-    <a href="#" hx-get="/now_playing" hx-target="#content" {%if now_playing_active %}class="active"{% endif %}>
+    <a href="#" hx-get="/now_playing" hx-push-url="true" hx-target="#content" {%if now_playing_active %}class="active"{% endif %}>
         <i class="fa-solid fa-circle-play"></i><span>Now playing</span>
     </a>
-    <a href="#" hx-get="/database" hx-target="#content" {%if database_active %}class="active"{% endif %}>
+    <a href="#" hx-get="/database" hx-push-url="true" hx-target="#content" {%if database_active %}class="active"{% endif %}>
         <i class="fa-solid fa-gear"></i><span>Database</span>
     </a>
 </div>

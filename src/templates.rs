@@ -1,14 +1,21 @@
 use crate::mpd::{Album, Song, SongInQueue, Status};
 use askama::Template;
-use axum::{
-    http::StatusCode,
-    response::{Html, IntoResponse, Response},
-};
+
+pub enum Page {
+    Library(LibraryTemplate),
+    Albums(AlbumsTemplate),
+    Songs(AlbumSongsTemplate),
+    NowPlaying(NowPlayingTemplate),
+    Database(DatabaseTemplate),
+    Playlist(PlaylistTemplate),
+}
 
 #[derive(Template)]
 #[template(path = "index.html")]
 pub struct IndexTemplate {
     pub error: Option<String>,
+    pub page: Page,
+    pub tabs: TabsTemplate,
 }
 
 #[derive(Template, Default)]
@@ -23,7 +30,7 @@ pub struct TabsTemplate {
 #[derive(Template)]
 #[template(path = "library.html")]
 pub struct LibraryTemplate {
-    pub tabs: TabsTemplate,
+    pub tabs: Option<TabsTemplate>,
 }
 
 #[derive(Template)]
@@ -35,7 +42,7 @@ pub struct ArtistsTemplate {
 #[derive(Template)]
 #[template(path = "albums.html")]
 pub struct AlbumsTemplate {
-    pub tabs: TabsTemplate,
+    pub tabs: Option<TabsTemplate>,
     pub artist: String,
     pub albums: Vec<Album>,
 }
@@ -49,7 +56,7 @@ pub struct StatusTemplate {
 #[derive(Template)]
 #[template(path = "playlist.html")]
 pub struct PlaylistTemplate {
-    pub tabs: TabsTemplate,
+    pub tabs: Option<TabsTemplate>,
 }
 
 #[derive(Template)]
@@ -62,7 +69,7 @@ pub struct PlaylistSongsTemplate {
 #[derive(Template)]
 #[template(path = "album_songs.html")]
 pub struct AlbumSongsTemplate {
-    pub tabs: TabsTemplate,
+    pub tabs: Option<TabsTemplate>,
     pub artist: String,
     pub album: String,
     pub songs: Vec<Song>,
@@ -71,7 +78,7 @@ pub struct AlbumSongsTemplate {
 #[derive(Template)]
 #[template(path = "database.html")]
 pub struct DatabaseTemplate {
-    pub tabs: TabsTemplate,
+    pub tabs: Option<TabsTemplate>,
     pub mpd_addr: String,
     pub stats: mpd_client::responses::Stats,
 }
@@ -85,7 +92,7 @@ pub struct DatabaseUpdateStatusTemplate {
 #[derive(Template)]
 #[template(path = "now_playing.html")]
 pub struct NowPlayingTemplate {
-    pub tabs: TabsTemplate,
+    pub tabs: Option<TabsTemplate>,
 }
 
 #[derive(Template)]
@@ -127,23 +134,5 @@ mod filters {
         let secs = *unix_timestamp as i64;
         let datetime = DateTime::from_timestamp(secs, 0).ok_or(::askama::Error::Fmt(Error))?;
         Ok(format!("{}", datetime.format("%Y-%m-%d %H:%M:%S+00:00")))
-    }
-}
-
-pub struct HtmlTemplate<T>(pub T);
-
-impl<T> IntoResponse for HtmlTemplate<T>
-where
-    T: Template,
-{
-    fn into_response(self) -> Response {
-        match self.0.render() {
-            Ok(html) => Html(html).into_response(),
-            Err(err) => (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Failed to render template. Error: {err}"),
-            )
-                .into_response(),
-        }
     }
 }

@@ -2,6 +2,7 @@ mod mpd;
 mod templates;
 use askama::Template;
 use axum::extract::State;
+use axum::http::HeaderMap;
 use axum::{
     extract::ws::{WebSocket, WebSocketUpgrade},
     extract::Query,
@@ -97,27 +98,47 @@ async fn main() {
     axum::serve(listener, app).await.unwrap();
 }
 
-async fn get_library() -> Result<impl IntoResponse, AppError> {
-    let template = t::LibraryTemplate {
-        tabs: t::TabsTemplate {
-            library_active: true,
-            ..Default::default()
-        },
+async fn get_library(headers: HeaderMap) -> Result<impl IntoResponse, AppError> {
+    let tabs = t::TabsTemplate {
+        library_active: true,
+        ..Default::default()
     };
-    Ok(t::HtmlTemplate(template))
+
+    if headers.contains_key("HX-Request") {
+        Ok(t::LibraryTemplate { tabs: Some(tabs) }.into_response())
+    } else {
+        let index = render_index(t::Page::Library(t::LibraryTemplate { tabs: None }), tabs).await?;
+        Ok(index.into_response())
+    }
 }
 
-async fn get_database() -> Result<impl IntoResponse, AppError> {
+async fn get_database(headers: HeaderMap) -> Result<impl IntoResponse, AppError> {
     let stats = Mpd::connect().await?.stats().await?;
-    let template = t::DatabaseTemplate {
-        stats,
-        mpd_addr: mpd::mpd_addr(),
-        tabs: t::TabsTemplate {
-            database_active: true,
-            ..Default::default()
-        },
+    let tabs = t::TabsTemplate {
+        database_active: true,
+        ..Default::default()
     };
-    Ok(t::HtmlTemplate(template))
+    let mpd_addr = mpd::mpd_addr();
+
+    if headers.contains_key("HX-Request") {
+        Ok(t::DatabaseTemplate {
+            tabs: Some(tabs),
+            mpd_addr,
+            stats,
+        }
+        .into_response())
+    } else {
+        let index = render_index(
+            t::Page::Database(t::DatabaseTemplate {
+                tabs: None,
+                mpd_addr,
+                stats,
+            }),
+            tabs,
+        )
+        .await?;
+        Ok(index.into_response())
+    }
 }
 
 async fn update_db() -> Result<(), AppError> {
@@ -128,7 +149,7 @@ async fn update_db() -> Result<(), AppError> {
 async fn update_status() -> Result<impl IntoResponse, AppError> {
     let updating = Mpd::connect().await?.get_status().await?.ubdating_db;
     let template = t::DatabaseUpdateStatusTemplate { updating };
-    Ok(t::HtmlTemplate(template))
+    Ok(template)
 }
 
 async fn get_artists(
@@ -139,40 +160,80 @@ async fn get_artists(
         .get_artists(artists_search_query.q)
         .await?;
     let template = t::ArtistsTemplate { artists };
-    Ok(t::HtmlTemplate(template))
+    Ok(template)
 }
 
-async fn get_albums(Query(query): Query<ArtistQuery>) -> Result<impl IntoResponse, AppError> {
+async fn get_albums(
+    Query(query): Query<ArtistQuery>,
+    headers: HeaderMap,
+) -> Result<impl IntoResponse, AppError> {
     let albums = Mpd::connect().await?.get_albums(&query.artist).await?;
-    let template = t::AlbumsTemplate {
-        tabs: t::TabsTemplate {
-            library_active: true,
-            ..Default::default()
-        },
-        artist: query.artist,
-        albums,
+    let tabs = t::TabsTemplate {
+        library_active: true,
+        ..Default::default()
     };
-    Ok(t::HtmlTemplate(template))
+
+    if headers.contains_key("HX-Request") {
+        Ok(t::AlbumsTemplate {
+            tabs: Some(tabs),
+            artist: query.artist,
+            albums,
+        }
+        .into_response())
+    } else {
+        let index = render_index(
+            t::Page::Albums(t::AlbumsTemplate {
+                tabs: None,
+                artist: query.artist,
+                albums,
+            }),
+            tabs,
+        )
+        .await?;
+        Ok(index.into_response())
+    }
 }
 
-async fn get_songs(Query(q): Query<ArtistAlbumQuery>) -> Result<impl IntoResponse, AppError> {
+async fn get_songs(
+    Query(q): Query<ArtistAlbumQuery>,
+    headers: HeaderMap,
+) -> Result<impl IntoResponse, AppError> {
     let songs = Mpd::connect().await?.get_songs(&q.artist, &q.album).await?;
-    let template = t::AlbumSongsTemplate {
-        tabs: t::TabsTemplate {
-            library_active: true,
-            ..Default::default()
-        },
-        artist: q.artist,
-        album: q.album,
-        songs,
+    let tabs = t::TabsTemplate {
+        library_active: true,
+        ..Default::default()
     };
-    Ok(t::HtmlTemplate(template))
+
+    if headers.contains_key("HX-Request") {
+        Ok(t::AlbumSongsTemplate {
+            tabs: Some(tabs),
+            artist: q.artist,
+            album: q.album,
+            songs,
+        }
+        .into_response())
+    } else {
+        let index = render_index(
+            t::Page::Songs(t::AlbumSongsTemplate {
+                tabs: None,
+                artist: q.artist,
+                album: q.album,
+                songs,
+            }),
+            tabs,
+        )
+        .await?;
+        Ok(index.into_response())
+    }
 }
 
-async fn get_index() -> impl IntoResponse {
+async fn render_index(page: t::Page, tabs: t::TabsTemplate) -> Result<impl IntoResponse, AppError> {
     let error = Mpd::connect().await.err().map(|e| e.to_string());
-    let template = t::IndexTemplate { error };
-    t::HtmlTemplate(template)
+    Ok(t::IndexTemplate { error, page, tabs })
+}
+
+async fn get_index() -> Result<impl IntoResponse, AppError> {
+    get_library(HeaderMap::default()).await
 }
 
 async fn get_status(ws: WebSocketUpgrade) -> impl IntoResponse {
@@ -307,14 +368,19 @@ async fn handle_ws_playlist(mut socket: WebSocket) {
     }
 }
 
-async fn get_playlist() -> impl IntoResponse {
-    let template = t::PlaylistTemplate {
-        tabs: t::TabsTemplate {
-            playlist_active: true,
-            ..Default::default()
-        },
+async fn get_playlist(headers: HeaderMap) -> Result<impl IntoResponse, AppError> {
+    let tabs = t::TabsTemplate {
+        playlist_active: true,
+        ..Default::default()
     };
-    t::HtmlTemplate(template)
+
+    if headers.contains_key("HX-Request") {
+        Ok(t::PlaylistTemplate { tabs: Some(tabs) }.into_response())
+    } else {
+        let index =
+            render_index(t::Page::Playlist(t::PlaylistTemplate { tabs: None }), tabs).await?;
+        Ok(index.into_response())
+    }
 }
 
 async fn append_album(Query(q): Query<ArtistAlbumQuery>) -> Result<(), AppError> {
@@ -382,14 +448,22 @@ async fn get_cover(
     Ok(art)
 }
 
-async fn get_now_playing() -> Result<impl IntoResponse, AppError> {
-    let template = t::NowPlayingTemplate {
-        tabs: t::TabsTemplate {
-            now_playing_active: true,
-            ..Default::default()
-        },
+async fn get_now_playing(headers: HeaderMap) -> Result<impl IntoResponse, AppError> {
+    let tabs = t::TabsTemplate {
+        now_playing_active: true,
+        ..Default::default()
     };
-    Ok(t::HtmlTemplate(template))
+
+    if headers.contains_key("HX-Request") {
+        Ok(t::NowPlayingTemplate { tabs: Some(tabs) }.into_response())
+    } else {
+        let index = render_index(
+            t::Page::NowPlaying(t::NowPlayingTemplate { tabs: None }),
+            tabs,
+        )
+        .await?;
+        Ok(index.into_response())
+    }
 }
 
 async fn get_now_playing_content(ws: WebSocketUpgrade) -> impl IntoResponse {

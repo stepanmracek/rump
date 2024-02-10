@@ -1,4 +1,8 @@
+{% match tabs %}
+{% when Some(tabs) %}
 {{ tabs|e("none") }}
+{% when None %}
+{% endmatch %}
 
 <h1>{{artist}}</h1>
 <div class="albums">
@@ -6,7 +10,7 @@
 <div class="album">
     <img class="album-cover"
         src="/cover?artist={{artist|urlencode_strict}}&album={{album.album_name|urlencode_strict}}"
-        hx-get="/songs?artist={{artist|urlencode_strict}}&album={{album.album_name|urlencode_strict}}" hx-target="#content" hx-trigger="click"
+        hx-get="/songs?artist={{artist|urlencode_strict}}&album={{album.album_name|urlencode_strict}}" hx-push-url="true" hx-target="#content" hx-trigger="click"
     >
     <b class="ellipsis">{{album.album_name}}</b>
     <div>

@@ -1,4 +1,8 @@
+{% match tabs %}
+{% when Some(tabs) %}
 {{ tabs|e("none") }}
+{% when None %}
+{% endmatch %}
 
 <table class="database">
     <tr>

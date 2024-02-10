@@ -1,4 +1,8 @@
+{% match tabs %}
+{% when Some(tabs) %}
 {{ tabs|e("none") }}
+{% when None %}
+{% endmatch %}
 
 <div hx-ws="connect:/now_playing/content"></div>
 <div id="now-playing-content"></div>

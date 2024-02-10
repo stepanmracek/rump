@@ -1,4 +1,8 @@
+{% match tabs %}
+{% when Some(tabs) %}
 {{ tabs|e("none") }}
+{% when None %}
+{% endmatch %}
 
 <input name="q" placeholder="search" hx-get="/artists" hx-trigger="keyup changed delay:500ms" hx-target="#artists">
 
