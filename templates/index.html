@@ -13,8 +13,8 @@
 
 {% match error %}
 {% when Some(error) %}
-<body>
-    <h1 class="display-1">Connection error</h1>
+<body class="error">
+    <h1>Connection error</h1>
     <span>{{error}}</span>
 </body>
 {% when None %}
