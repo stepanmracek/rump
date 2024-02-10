@@ -159,8 +159,7 @@ async fn get_artists(
         .await?
         .get_artists(artists_search_query.q)
         .await?;
-    let template = t::ArtistsTemplate { artists };
-    Ok(template)
+    Ok(t::ArtistsTemplate::new(artists))
 }
 
 async fn get_albums(

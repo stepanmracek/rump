@@ -1,5 +1,8 @@
-{% for artist in artists %}
+{% for (letter, vec) in artists %}
+<h1>{{letter}}</h1>
+{% for artist in vec %}
 <a href="#" hx-get="/albums?artist={{artist|urlencode_strict}}" hx-push-url="true" hx-target="#content">
     {{artist}}
 </a>
+{% endfor %}
 {% endfor %}

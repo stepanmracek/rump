@@ -36,7 +36,30 @@ pub struct LibraryTemplate {
 #[derive(Template)]
 #[template(path = "artists.html")]
 pub struct ArtistsTemplate {
-    pub artists: Vec<String>,
+    pub artists: Vec<(char, Vec<String>)>,
+}
+
+impl ArtistsTemplate {
+    pub fn new(artists_vec: Vec<String>) -> Self {
+        let mut artists_vec = artists_vec.clone();
+        artists_vec.sort_by_key(|a| a.to_lowercase());
+        let mut artists: Vec<(char, Vec<String>)> = vec![];
+        for artist in artists_vec.into_iter() {
+            let letter: char = artist
+                .chars()
+                .next()
+                .unwrap_or_default()
+                .to_uppercase()
+                .next()
+                .unwrap_or_default();
+            if artists.is_empty() || artists.last().unwrap().0 != letter {
+                artists.push((letter, vec![artist]))
+            } else {
+                artists.last_mut().unwrap().1.push(artist);
+            }
+        }
+        ArtistsTemplate { artists }
+    }
 }
 
 #[derive(Template)]
