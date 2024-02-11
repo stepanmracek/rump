@@ -84,6 +84,7 @@ async fn main() {
         .route("/playlist/play/album", get(play_album))
         .route("/playlist/play/song", get(play_song_by_url))
         .route("/playlist/append/song", get(append_song_by_url))
+        .route("/playlist/remove/song", get(remove_song_by_id))
         .route("/cover", get(get_cover))
         .route("/database", get(get_database))
         .route("/database/update_db", get(update_db))
@@ -411,6 +412,13 @@ async fn append_song_by_url(Query(url_query): Query<UrlQuery>) -> Result<(), App
         .await?
         .append_song_by_url(&url_query.url)
         .await?;
+    Ok(())
+}
+
+async fn remove_song_by_id(Query(q): Query<SongIdQuery>) -> Result<(), AppError> {
+    if let Some(song_id) = q.song_id {
+        Mpd::connect().await?.remove_from_playlist(song_id).await?;
+    }
     Ok(())
 }
 

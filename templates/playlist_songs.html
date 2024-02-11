@@ -1,9 +1,14 @@
 <div id="playlist-songs">
     <div class="playlist">
         {% for song in songs %}
-        <a {%if song.playing %}class="current"{% endif %} href="#" hx-get="/control/play?song_id={{song.id|urlencode_strict}}" hx-swap="none">
-            {{song.artist}} - {{song.title}}
-        </a>
+        <div {%if song.playing %}class="current"{% endif %}>
+            <a href="#" hx-get="/control/play?song_id={{song.id|urlencode_strict}}" hx-swap="none">
+                {{song.artist}} - {{song.title}}
+            </a>
+            <a href="#" hx-get="/playlist/remove/song?song_id={{song.id|urlencode_strict}}" hx-swap="none">
+                <i class="fa-solid fa-trash-can"></i>
+            </a>
+        </div>
         {% endfor %}
         {%if songs.is_empty() %}
         <div>( Empty )</div>

@@ -348,6 +348,13 @@ impl Mpd {
             .collect())
     }
 
+    pub async fn remove_from_playlist(&self, song_id: u64) -> Result<()> {
+        self.mpd_client
+            .command(mpd_client::commands::Delete::id(song_id.into()))
+            .await?;
+        Ok(())
+    }
+
     pub async fn clear_playlist(&self) -> Result<()> {
         self.mpd_client
             .command(mpd_client::commands::ClearQueue)
