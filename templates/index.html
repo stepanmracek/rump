@@ -22,20 +22,7 @@
 
     <div id="main">
         <div id="content">
-            {% match page %}
-            {% when Page::Library(library) %}
-            {{library|e("none")}}
-            {% when Page::Albums(albums) %}
-            {{albums|e("none")}}
-            {% when Page::Songs(songs) %}
-            {{songs|e("none")}}
-            {% when Page::NowPlaying(now_playing) %}
-            {{now_playing|e("none")}}
-            {% when Page::Database(database) %}
-            {{database|e("none")}}
-            {% when Page::Playlist(playlist) %}
-            {{playlist|e("none")}}
-            {% endmatch %}
+            {{ page|e("none") }}
         </div>
     </div>
 

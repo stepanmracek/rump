@@ -10,6 +10,19 @@ pub enum Page {
     Playlist(PlaylistTemplate),
 }
 
+impl std::fmt::Display for Page {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Page::Library(p) => p.fmt(f),
+            Page::Albums(p) => p.fmt(f),
+            Page::Songs(p) => p.fmt(f),
+            Page::NowPlaying(p) => p.fmt(f),
+            Page::Database(p) => p.fmt(f),
+            Page::Playlist(p) => p.fmt(f),
+        }
+    }
+}
+
 #[derive(Template)]
 #[template(path = "index.html")]
 pub struct IndexTemplate {
