@@ -77,8 +77,13 @@ a:hover {
     height: calc(100dvh - 64px);
 }
 
+#navbar>a>span {
+    white-space: nowrap;
+}
+
 #navbar>a {
-    margin: 20px;
+    margin: 3dvh;
+    margin-left: 20px;
     margin-right: 0;
     padding: 15px;
     font-size: 16px;
