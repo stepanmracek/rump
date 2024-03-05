@@ -14,3 +14,4 @@ WorkingDirectory=/home/pi/rump/
 TimeoutStopSec=5
 KillMode=process
 Restart=on-failure
+Environment=RUST_LOG=warn

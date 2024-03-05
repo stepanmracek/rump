@@ -19,6 +19,7 @@ use std::sync::{Arc, Mutex};
 use templates as t;
 use tower_http::services::ServeDir;
 use tower_http::trace::TraceLayer;
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[derive(Deserialize)]
 struct GenericQuery {
@@ -53,8 +54,11 @@ struct AlbumArtCache {
 
 #[tokio::main]
 async fn main() {
-    tracing_subscriber::fmt()
-        .with_max_level(tracing::Level::INFO)
+    tracing_subscriber::registry()
+        .with(
+            tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| "info".into()),
+        )
+        .with(tracing_subscriber::fmt::layer())
         .init();
 
     let album_art_cache: Arc<Mutex<AlbumArtCache>> = {
