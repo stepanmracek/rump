@@ -1163,6 +1163,7 @@ dependencies = [
  "askama",
  "askama_axum",
  "axum",
+ "bytes",
  "chrono",
  "image",
  "mpd_client",

@@ -1,4 +1,5 @@
 use anyhow::Result;
+use bytes::BytesMut;
 use mpd_client::responses::PlayState;
 use std::io::Read;
 
@@ -62,6 +63,23 @@ pub fn mpd_addr() -> String {
     let host = std::env::var("MPD_HOST").unwrap_or("localhost".to_string());
     let port = std::env::var("MPD_PORT").unwrap_or("6600".to_string());
     format!("{host}:{port}")
+}
+
+pub fn scale_down_if_needed(bytes: BytesMut, max_size: u32) -> Result<Vec<u8>> {
+    let img = image::load_from_memory(&bytes)?;
+    if img.width() > max_size {
+        let resized = image::imageops::resize(
+            &img,
+            max_size,
+            max_size,
+            image::imageops::FilterType::Triangle,
+        );
+        let mut cursor = std::io::Cursor::new(vec![]);
+        resized.write_to(&mut cursor, image::ImageFormat::Png)?;
+        Ok(cursor.into_inner())
+    } else {
+        Ok(bytes.into_iter().collect())
+    }
 }
 
 impl Mpd {
@@ -144,42 +162,7 @@ impl Mpd {
             .mpd_client
             .album_art(&url.unwrap())
             .await?
-            .and_then(|(bytes, _mime)| {
-                if !bytes.is_empty() {
-                    let img = image::load_from_memory(&bytes);
-                    if let Ok(img) = img {
-                        tracing::debug!(target: "album_art",
-                            "{artist}-{album}: Image size: {}x{}",
-                            img.width(),
-                            img.height()
-                        );
-                        if img.width() > 256 {
-                            let img = image::imageops::resize(
-                                &img,
-                                256,
-                                256,
-                                image::imageops::FilterType::Triangle,
-                            );
-                            let mut cursor = std::io::Cursor::new(vec![]);
-                            if let Ok(()) = img.write_to(&mut cursor, image::ImageFormat::Png) {
-                                tracing::debug!(target: "album_art", "{artist}-{album}: Image resized to: 192x192");
-                                Some(cursor.into_inner())
-                            } else {
-                                tracing::warn!(target: "album_art", "{artist}-{album}: Image write error");
-                                None
-                            }
-                        } else {
-                            Some(bytes.into_iter().collect())
-                        }
-                    } else {
-                        tracing::warn!(target: "album_art", "{artist}-{album}: Image load error");
-                        None
-                    }
-                } else {
-                    tracing::trace!(target: "album_art", "{artist}-{album}: Image is just empty bytes");
-                    None
-                }
-            });
+            .and_then(|(bytes, _)| scale_down_if_needed(bytes, 256).ok());
 
         if let Some(art) = art {
             Ok(art)
