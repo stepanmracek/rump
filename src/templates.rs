@@ -1,5 +1,6 @@
 use crate::mpd::{Album, Song, SongInQueue, Status};
 use askama::Template;
+use itertools::Itertools;
 
 pub enum Page {
     Library(LibraryTemplate),
@@ -52,33 +53,31 @@ pub struct ArtistsTemplate {
     pub artists: Vec<(char, Vec<String>)>,
 }
 
+fn first_letter(s: &str) -> char {
+    s.chars()
+        .next()
+        .unwrap_or_default()
+        .to_uppercase()
+        .next()
+        .unwrap_or_default()
+}
+
 impl ArtistsTemplate {
     pub fn new(artists_vec: Vec<String>) -> Self {
         let mut artists_vec = artists_vec.clone();
         artists_vec.sort_by_key(|a| a.to_lowercase());
 
-        if artists_vec.len() <= 20 {
-            ArtistsTemplate {
-                artists: vec![(' ', artists_vec)],
-            }
+        let artists = if artists_vec.len() <= 20 {
+            vec![(' ', artists_vec)]
         } else {
-            let mut artists: Vec<(char, Vec<String>)> = vec![];
-            for artist in artists_vec.into_iter() {
-                let letter: char = artist
-                    .chars()
-                    .next()
-                    .unwrap_or_default()
-                    .to_uppercase()
-                    .next()
-                    .unwrap_or_default();
-                if artists.is_empty() || artists.last().unwrap().0 != letter {
-                    artists.push((letter, vec![artist]))
-                } else {
-                    artists.last_mut().unwrap().1.push(artist);
-                }
-            }
-            ArtistsTemplate { artists }
-        }
+            artists_vec
+                .into_iter()
+                .group_by(|artist| first_letter(artist))
+                .into_iter()
+                .map(|(key, group)| (key, group.collect_vec()))
+                .collect_vec()
+        };
+        ArtistsTemplate { artists }
     }
 }
 
