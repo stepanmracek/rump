@@ -15,8 +15,9 @@ use mpd::Mpd;
 use mpd_client::client::{ConnectionEvent, Subsystem};
 use serde::Deserialize;
 use std::collections::{HashMap, VecDeque};
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use templates as t;
+use tokio::sync::Mutex;
 use tower_http::services::ServeDir;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -431,28 +432,25 @@ async fn get_cover(
     State(cache): State<Arc<Mutex<AlbumArtCache>>>,
 ) -> Result<Vec<u8>, AppError> {
     let cache_key = (q.artist.clone(), q.album.clone());
+    let mut cache = cache.lock().await;
 
-    if let Ok(cache) = cache.lock() {
-        if let Some(cached) = cache.cache.get(&cache_key) {
-            tracing::debug!(target: "album_art", "returning cached value for {}-{}", q.artist, q.album);
-            return Ok(cached.clone());
-        }
+    if let Some(cached) = cache.cache.get(&cache_key) {
+        tracing::debug!(target: "album_art", "returning cached value for {}-{}", q.artist, q.album);
+        return Ok(cached.clone());
     }
 
     let art = Mpd::connect().await?.album_art(&q.artist, &q.album).await?;
 
-    if let Ok(mut cache) = cache.lock() {
-        let old_val = cache.cache.insert(cache_key.clone(), art.clone());
-        if old_val.is_none() {
-            // new value was added
-            tracing::debug!(target: "album_art", "caching new value {}-{}", cache_key.0, cache_key.1);
-            cache.keys.push_back(cache_key);
+    let old_val = cache.cache.insert(cache_key.clone(), art.clone());
+    if old_val.is_none() {
+        // new value was added
+        tracing::debug!(target: "album_art", "caching new value {}-{}", cache_key.0, cache_key.1);
+        cache.keys.push_back(cache_key);
 
-            while cache.keys.len() > 100 {
-                let to_delete = cache.keys.pop_front().unwrap();
-                tracing::debug!(target: "album_art", "removing cached value {}-{}", to_delete.0, to_delete.1);
-                cache.cache.remove(&to_delete);
-            }
+        while cache.keys.len() > 100 {
+            let to_delete = cache.keys.pop_front().unwrap();
+            tracing::debug!(target: "album_art", "removing cached value {}-{}", to_delete.0, to_delete.1);
+            cache.cache.remove(&to_delete);
         }
     }
 
