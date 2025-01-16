@@ -12,7 +12,7 @@ pub struct Status {
     pub title: Option<String>,
     pub artist: Option<String>,
     pub album: Option<String>,
-    pub year: Option<i32>,
+    // pub year: Option<i32>,
     pub play_state: mpd_client::responses::PlayState,
     pub has_next: bool,
     pub has_prev: bool,
@@ -20,7 +20,7 @@ pub struct Status {
     pub single_mode: mpd_client::commands::SingleMode,
     pub repeat: bool,
     pub random: bool,
-    pub consume: bool,
+    // pub consume: bool,
     pub ubdating_db: bool,
     pub elapsed: Option<f64>,
     pub duration: Option<f64>,
@@ -35,8 +35,8 @@ pub struct SongInQueue {
 
 pub struct Song {
     pub url: String,
-    pub artist: String,
-    pub album: String,
+    // pub artist: String,
+    // pub album: String,
     pub title: String,
     pub year: Option<i32>,
 }
@@ -129,10 +129,8 @@ impl Mpd {
         Ok(result
             .into_iter()
             .map(|song| Song {
-                artist: get_single_tag_value(&song, &mpd_client::tag::Tag::Artist)
-                    .unwrap_or_default(),
-                album: get_single_tag_value(&song, &mpd_client::tag::Tag::Album)
-                    .unwrap_or_default(),
+                // artist: get_single_tag_value(&song, &mpd_client::tag::Tag::Artist).unwrap_or_default(),
+                // album: get_single_tag_value(&song, &mpd_client::tag::Tag::Album).unwrap_or_default(),
                 title: get_single_tag_value(&song, &mpd_client::tag::Tag::Title)
                     .unwrap_or_default(),
                 year: get_single_tag_value(&song, &mpd_client::tag::Tag::Date),
@@ -224,9 +222,9 @@ impl Mpd {
         let album = current_song
             .as_ref()
             .and_then(|song| song.song.album().map(|s| s.to_string()));
-        let year = current_song
-            .as_ref()
-            .and_then(|song| get_single_tag_value::<i32>(&song.song, &mpd_client::tag::Tag::Date));
+        // let year = current_song
+        //     .as_ref()
+        //     .and_then(|song| get_single_tag_value::<i32>(&song.song, &mpd_client::tag::Tag::Date));
         let elapsed = status.elapsed.map(|e| e.as_secs_f64());
         let duration = status.duration.map(|d| d.as_secs_f64());
 
@@ -234,12 +232,12 @@ impl Mpd {
             title,
             artist,
             album,
-            year,
+            // year,
             play_state,
             has_next,
             has_prev,
             has_song,
-            consume: status.consume,
+            // consume: status.consume,
             single_mode: status.single,
             repeat: status.repeat,
             random: status.random,
