@@ -1,5 +1,5 @@
 use anyhow::Result;
-use bytes::BytesMut;
+use bytes::{Bytes, BytesMut};
 use mpd_client::responses::PlayState;
 use std::io::Read;
 use std::sync::Arc;
@@ -67,7 +67,7 @@ pub fn mpd_addr() -> String {
     format!("{host}:{port}")
 }
 
-pub fn scale_down_if_needed(bytes: BytesMut, max_size: u32) -> Result<Vec<u8>> {
+pub fn scale_down_if_needed(bytes: BytesMut, max_size: u32) -> Result<Bytes> {
     let img = image::load_from_memory(&bytes)?;
     if img.width() > max_size {
         let resized = image::imageops::resize(
@@ -78,9 +78,9 @@ pub fn scale_down_if_needed(bytes: BytesMut, max_size: u32) -> Result<Vec<u8>> {
         );
         let mut cursor = std::io::Cursor::new(vec![]);
         resized.write_to(&mut cursor, image::ImageFormat::Png)?;
-        Ok(cursor.into_inner())
+        Ok(Bytes::from(cursor.into_inner()))
     } else {
-        Ok(bytes.into_iter().collect())
+        Ok(bytes.freeze())
     }
 }
 
@@ -149,12 +149,12 @@ impl Mpd {
             .collect())
     }
 
-    pub async fn album_art(&self, artist: &str, album: &str) -> Result<Vec<u8>> {
+    pub async fn album_art(&self, artist: &str, album: &str) -> Result<Bytes> {
         let fallback = || {
             let mut file = std::fs::File::open("assets/lp.png").unwrap();
             let mut buf = vec![];
             file.read_to_end(&mut buf).unwrap();
-            buf
+            Bytes::from(buf)
         };
 
         let url = self

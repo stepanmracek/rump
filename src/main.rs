@@ -11,6 +11,7 @@ use axum::{
     routing::get,
     Router,
 };
+use bytes::Bytes;
 use mpd::Mpd;
 use mpd_client::client::{ConnectionEvent, Subsystem};
 use serde::Deserialize;
@@ -49,7 +50,7 @@ struct SongIdQuery {
 }
 
 struct AlbumArtCache {
-    cache: HashMap<(String, String), Vec<u8>>,
+    cache: HashMap<(String, String), Bytes>,
     keys: VecDeque<(String, String)>,
 }
 
@@ -60,11 +61,11 @@ impl AlbumArtCache {
         Self { cache, keys }
     }
 
-    pub fn get(&self, key: &(String, String)) -> Option<&Vec<u8>> {
-        self.cache.get(key)
+    pub fn get(&self, key: &(String, String)) -> Option<Bytes> {
+        self.cache.get(key).cloned()
     }
 
-    pub fn set(&mut self, key: (String, String), value: Vec<u8>) {
+    pub fn set(&mut self, key: (String, String), value: Bytes) {
         let old_val = self.cache.insert(key.clone(), value);
         if old_val.is_none() {
             // new value was added
@@ -530,17 +531,24 @@ async fn remove_song_by_id(
 async fn get_cover(
     State(state): State<AppState>,
     Query(q): Query<ArtistAlbumQuery>,
-) -> Result<Vec<u8>, AppError> {
+) -> Result<Bytes, AppError> {
     let cache_key = (q.artist.clone(), q.album.clone());
-    let mut cache = state.album_art_cache.lock().await;
 
-    if let Some(cached) = cache.get(&cache_key) {
-        tracing::debug!(target: "album_art", "returning cached value for {}-{}", q.artist, q.album);
-        return Ok(cached.clone());
+    {
+        let cache = state.album_art_cache.lock().await;
+        if let Some(cached) = cache.get(&cache_key) {
+            tracing::debug!(target: "album_art", "returning cached value for {}-{}", q.artist, q.album);
+            return Ok(cached);
+        }
     }
 
     let art = state.mpd.album_art(&q.artist, &q.album).await?;
-    cache.set(cache_key, art.clone());
+
+    {
+        let mut cache = state.album_art_cache.lock().await;
+        cache.set(cache_key, art.clone());
+    }
+
     Ok(art)
 }
 
