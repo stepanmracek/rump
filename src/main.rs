@@ -53,6 +53,33 @@ struct AlbumArtCache {
     keys: VecDeque<(String, String)>,
 }
 
+impl AlbumArtCache {
+    pub fn new() -> Self {
+        let cache = HashMap::new();
+        let keys = VecDeque::from([]);
+        Self { cache, keys }
+    }
+
+    pub fn get(&self, key: &(String, String)) -> Option<&Vec<u8>> {
+        self.cache.get(key)
+    }
+
+    pub fn set(&mut self, key: (String, String), value: Vec<u8>) {
+        let old_val = self.cache.insert(key.clone(), value);
+        if old_val.is_none() {
+            // new value was added
+            tracing::debug!(target: "album_art", "caching new value {}-{}", key.0, key.1);
+            self.keys.push_back(key);
+
+            while self.keys.len() > 100 {
+                let to_delete = self.keys.pop_front().unwrap();
+                tracing::debug!(target: "album_art", "removing cached value {}-{}", to_delete.0, to_delete.1);
+                self.cache.remove(&to_delete);
+            }
+        }
+    }
+}
+
 #[derive(Clone)]
 struct AppState {
     mpd: Mpd,
@@ -69,11 +96,7 @@ async fn main() {
         .with(tracing_subscriber::fmt::layer())
         .init();
 
-    let album_art_cache: Arc<Mutex<AlbumArtCache>> = {
-        let cache = HashMap::new();
-        let keys = VecDeque::from([]);
-        Mutex::new(AlbumArtCache { cache, keys }).into()
-    };
+    let album_art_cache: Arc<Mutex<AlbumArtCache>> = Mutex::new(AlbumArtCache::new()).into();
 
     let (mpd_client, mut connection_events) =
         Mpd::connect().await.expect("Failed to connect to MPD");
@@ -511,26 +534,13 @@ async fn get_cover(
     let cache_key = (q.artist.clone(), q.album.clone());
     let mut cache = state.album_art_cache.lock().await;
 
-    if let Some(cached) = cache.cache.get(&cache_key) {
+    if let Some(cached) = cache.get(&cache_key) {
         tracing::debug!(target: "album_art", "returning cached value for {}-{}", q.artist, q.album);
         return Ok(cached.clone());
     }
 
     let art = state.mpd.album_art(&q.artist, &q.album).await?;
-
-    let old_val = cache.cache.insert(cache_key.clone(), art.clone());
-    if old_val.is_none() {
-        // new value was added
-        tracing::debug!(target: "album_art", "caching new value {}-{}", cache_key.0, cache_key.1);
-        cache.keys.push_back(cache_key);
-
-        while cache.keys.len() > 100 {
-            let to_delete = cache.keys.pop_front().unwrap();
-            tracing::debug!(target: "album_art", "removing cached value {}-{}", to_delete.0, to_delete.1);
-            cache.cache.remove(&to_delete);
-        }
-    }
-
+    cache.set(cache_key, art.clone());
     Ok(art)
 }
 
