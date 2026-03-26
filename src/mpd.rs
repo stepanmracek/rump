@@ -2,6 +2,8 @@ use anyhow::Result;
 use bytes::BytesMut;
 use mpd_client::responses::PlayState;
 use std::io::Read;
+use std::sync::Arc;
+use tokio::sync::RwLock;
 
 pub struct Album {
     pub album_name: String,
@@ -41,9 +43,9 @@ pub struct Song {
     pub year: Option<i32>,
 }
 
+#[derive(Clone)]
 pub struct Mpd {
-    pub mpd_client: mpd_client::Client,
-    pub connection_events: mpd_client::client::ConnectionEvents,
+    client: Arc<RwLock<mpd_client::Client>>,
 }
 
 pub fn get_single_tag_value<T>(
@@ -83,19 +85,27 @@ pub fn scale_down_if_needed(bytes: BytesMut, max_size: u32) -> Result<Vec<u8>> {
 }
 
 impl Mpd {
-    pub async fn connect() -> Result<Self> {
+    pub fn new(client: mpd_client::Client) -> Self {
+        Self {
+            client: Arc::new(RwLock::new(client)),
+        }
+    }
+
+    pub async fn update_client(&self, client: mpd_client::Client) {
+        let mut w = self.client.write().await;
+        *w = client;
+    }
+
+    pub async fn connect() -> Result<(mpd_client::Client, mpd_client::client::ConnectionEvents)> {
         let addr = mpd_addr();
-        let connection = tokio::net::TcpStream::connect(addr).await;
-        let (mpd_client, connection_events) = mpd_client::Client::connect(connection?).await?;
-        Ok(Self {
-            mpd_client,
-            connection_events,
-        })
+        let connection = tokio::net::TcpStream::connect(addr).await?;
+        let (mpd_client, connection_events) = mpd_client::Client::connect(connection).await?;
+        Ok((mpd_client, connection_events))
     }
 
     pub async fn get_artists(&self, name_filter: Option<String>) -> Result<Vec<String>> {
         let cmd = mpd_client::commands::List::new(mpd_client::tag::Tag::Artist);
-        let response = self.mpd_client.command(cmd).await?;
+        let response = self.client.read().await.command(cmd).await?;
 
         let name_filter = name_filter.map(|v| v.to_lowercase());
         Ok(response
@@ -123,7 +133,7 @@ impl Mpd {
                 album,
             )),
         );
-        let mut result = self.mpd_client.command(cmd).await?;
+        let mut result = self.client.read().await.command(cmd).await?;
 
         result.sort_by_key(|song| song.number());
         Ok(result
@@ -157,7 +167,9 @@ impl Mpd {
         }
 
         let art = self
-            .mpd_client
+            .client
+            .read()
+            .await
             .album_art(&url.unwrap())
             .await?
             .and_then(|(bytes, _)| scale_down_if_needed(bytes, 256).ok());
@@ -171,7 +183,9 @@ impl Mpd {
 
     pub async fn get_albums(&self, artist: &str) -> Result<Vec<Album>> {
         let response = self
-            .mpd_client
+            .client
+            .read()
+            .await
             .command(
                 mpd_client::commands::List::new(mpd_client::tag::Tag::Album).filter(
                     mpd_client::filter::Filter::new(
@@ -198,7 +212,9 @@ impl Mpd {
 
     pub async fn get_status(&self) -> Result<Status> {
         let (status, current_song) = self
-            .mpd_client
+            .client
+            .read()
+            .await
             .command_list((
                 mpd_client::commands::Status,
                 mpd_client::commands::CurrentSong,
@@ -248,33 +264,45 @@ impl Mpd {
     }
 
     pub async fn prev(&self) -> Result<()> {
-        self.mpd_client
+        self.client
+            .read()
+            .await
             .command(mpd_client::commands::Previous)
             .await?;
         Ok(())
     }
 
     pub async fn next(&self) -> Result<()> {
-        self.mpd_client.command(mpd_client::commands::Next).await?;
+        self.client
+            .read()
+            .await
+            .command(mpd_client::commands::Next)
+            .await?;
         Ok(())
     }
 
     pub async fn pause(&self, pause: bool) -> Result<()> {
-        self.mpd_client
+        self.client
+            .read()
+            .await
             .command(mpd_client::commands::SetPause(pause))
             .await?;
         Ok(())
     }
 
     pub async fn play(&self) -> Result<()> {
-        self.mpd_client
+        self.client
+            .read()
+            .await
             .command(mpd_client::commands::Play::current())
             .await?;
         Ok(())
     }
 
     pub async fn play_song(&self, song_id: u64) -> Result<()> {
-        self.mpd_client
+        self.client
+            .read()
+            .await
             .command(mpd_client::commands::Play::song(
                 mpd_client::commands::SongId(song_id),
             ))
@@ -284,7 +312,9 @@ impl Mpd {
 
     pub async fn play_song_by_url(&self, url: &str) -> Result<()> {
         let song_id = self
-            .mpd_client
+            .client
+            .read()
+            .await
             .command_list((
                 mpd_client::commands::ClearQueue,
                 mpd_client::commands::Add::uri(url),
@@ -296,7 +326,9 @@ impl Mpd {
     }
 
     pub async fn append_song_by_url(&self, url: &str) -> Result<()> {
-        self.mpd_client
+        self.client
+            .read()
+            .await
             .command(mpd_client::commands::Add::uri(url))
             .await?;
         Ok(())
@@ -304,7 +336,9 @@ impl Mpd {
 
     pub async fn get_playlist(&self) -> Result<Vec<SongInQueue>> {
         let (queue, current_song) = self
-            .mpd_client
+            .client
+            .read()
+            .await
             .command_list((
                 mpd_client::commands::Queue,
                 mpd_client::commands::CurrentSong,
@@ -330,14 +364,18 @@ impl Mpd {
     }
 
     pub async fn remove_from_playlist(&self, song_id: u64) -> Result<()> {
-        self.mpd_client
+        self.client
+            .read()
+            .await
             .command(mpd_client::commands::Delete::id(song_id.into()))
             .await?;
         Ok(())
     }
 
     pub async fn clear_playlist(&self) -> Result<()> {
-        self.mpd_client
+        self.client
+            .read()
+            .await
             .command(mpd_client::commands::ClearQueue)
             .await?;
         Ok(())
@@ -349,7 +387,7 @@ impl Mpd {
             .iter()
             .map(|song| mpd_client::commands::Add::uri(&song.url))
             .collect::<Vec<_>>();
-        self.mpd_client.command_list(commands).await?;
+        self.client.read().await.command_list(commands).await?;
         Ok(())
     }
 
@@ -360,7 +398,7 @@ impl Mpd {
             .iter()
             .map(|song| mpd_client::commands::Add::uri(&song.url))
             .collect::<Vec<_>>();
-        let ids = self.mpd_client.command_list(commands).await?;
+        let ids = self.client.read().await.command_list(commands).await?;
         if let Some(id) = ids.first() {
             self.play_song(id.0).await?;
         }
@@ -369,11 +407,15 @@ impl Mpd {
 
     pub async fn toggle_repeat(&self) -> Result<()> {
         let repeat = self
-            .mpd_client
+            .client
+            .read()
+            .await
             .command(mpd_client::commands::Status)
             .await?
             .repeat;
-        self.mpd_client
+        self.client
+            .read()
+            .await
             .command(mpd_client::commands::SetRepeat(!repeat))
             .await?;
         Ok(())
@@ -381,22 +423,33 @@ impl Mpd {
 
     pub async fn toggle_random(&self) -> Result<()> {
         let random = self
-            .mpd_client
+            .client
+            .read()
+            .await
             .command(mpd_client::commands::Status)
             .await?
             .random;
-        self.mpd_client
+        self.client
+            .read()
+            .await
             .command(mpd_client::commands::SetRandom(!random))
             .await?;
         Ok(())
     }
 
     pub async fn stats(&self) -> Result<mpd_client::responses::Stats> {
-        Ok(self.mpd_client.command(mpd_client::commands::Stats).await?)
+        Ok(self
+            .client
+            .read()
+            .await
+            .command(mpd_client::commands::Stats)
+            .await?)
     }
 
     pub async fn update_db(&self) -> Result<()> {
-        self.mpd_client
+        self.client
+            .read()
+            .await
             .command(mpd_client::commands::Update::new())
             .await?;
         Ok(())

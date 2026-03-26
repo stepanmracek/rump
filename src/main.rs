@@ -17,7 +17,7 @@ use serde::Deserialize;
 use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;
 use templates as t;
-use tokio::sync::Mutex;
+use tokio::sync::{broadcast, Mutex};
 use tower_http::services::ServeDir;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -53,6 +53,13 @@ struct AlbumArtCache {
     keys: VecDeque<(String, String)>,
 }
 
+#[derive(Clone)]
+struct AppState {
+    mpd: Mpd,
+    album_art_cache: Arc<Mutex<AlbumArtCache>>,
+    event_tx: broadcast::Sender<Subsystem>,
+}
+
 #[tokio::main]
 async fn main() {
     tracing_subscriber::registry()
@@ -66,6 +73,46 @@ async fn main() {
         let cache = HashMap::new();
         let keys = VecDeque::from([]);
         Mutex::new(AlbumArtCache { cache, keys }).into()
+    };
+
+    let (mpd_client, mut connection_events) =
+        Mpd::connect().await.expect("Failed to connect to MPD");
+    let mpd = Mpd::new(mpd_client);
+    let (event_tx, _) = broadcast::channel(16);
+
+    // MPD reconnection loop
+    let mpd_clone = mpd.clone();
+    let event_tx_clone = event_tx.clone();
+    tokio::spawn(async move {
+        loop {
+            while let Some(event) = connection_events.next().await {
+                if let ConnectionEvent::SubsystemChange(subsystem) = event {
+                    let _ = event_tx_clone.send(subsystem);
+                }
+            }
+
+            tracing::warn!("MPD connection lost, retrying in 5 seconds...");
+            tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+
+            match Mpd::connect().await {
+                Ok((new_client, new_events)) => {
+                    tracing::info!("Reconnected to MPD");
+                    mpd_clone.update_client(new_client).await;
+                    connection_events = new_events;
+                    // Trigger a refresh after reconnection
+                    let _ = event_tx_clone.send(Subsystem::Player);
+                }
+                Err(e) => {
+                    tracing::error!("Failed to reconnect to MPD: {}", e);
+                }
+            }
+        }
+    });
+
+    let state = AppState {
+        mpd,
+        album_art_cache,
+        event_tx,
     };
 
     let app = Router::new()
@@ -96,7 +143,7 @@ async fn main() {
         .route("/database/update_status", get(update_status))
         .route("/now_playing", get(get_now_playing))
         .route("/now_playing/content", get(get_now_playing_content))
-        .with_state(album_art_cache)
+        .with_state(state)
         .nest_service("/assets", ServeDir::new("assets"))
         .layer(TraceLayer::new_for_http());
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8000").await.unwrap();
@@ -104,7 +151,10 @@ async fn main() {
     axum::serve(listener, app).await.unwrap();
 }
 
-async fn get_library(headers: HeaderMap) -> Result<impl IntoResponse, AppError> {
+async fn get_library(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+) -> Result<impl IntoResponse, AppError> {
     let tabs = t::TabsTemplate {
         library_active: true,
         ..Default::default()
@@ -113,13 +163,21 @@ async fn get_library(headers: HeaderMap) -> Result<impl IntoResponse, AppError> 
     if headers.contains_key("HX-Request") {
         Ok(t::LibraryTemplate { tabs: Some(tabs) }.into_response())
     } else {
-        let index = render_index(t::Page::Library(t::LibraryTemplate { tabs: None }), tabs).await?;
+        let index = render_index(
+            &state.mpd,
+            t::Page::Library(t::LibraryTemplate { tabs: None }),
+            tabs,
+        )
+        .await?;
         Ok(index.into_response())
     }
 }
 
-async fn get_database(headers: HeaderMap) -> Result<impl IntoResponse, AppError> {
-    let stats = Mpd::connect().await?.stats().await?;
+async fn get_database(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+) -> Result<impl IntoResponse, AppError> {
+    let stats = state.mpd.stats().await?;
     let tabs = t::TabsTemplate {
         database_active: true,
         ..Default::default()
@@ -135,6 +193,7 @@ async fn get_database(headers: HeaderMap) -> Result<impl IntoResponse, AppError>
         .into_response())
     } else {
         let index = render_index(
+            &state.mpd,
             t::Page::Database(t::DatabaseTemplate {
                 tabs: None,
                 mpd_addr,
@@ -147,32 +206,31 @@ async fn get_database(headers: HeaderMap) -> Result<impl IntoResponse, AppError>
     }
 }
 
-async fn update_db() -> Result<(), AppError> {
-    Mpd::connect().await?.update_db().await?;
+async fn update_db(State(state): State<AppState>) -> Result<(), AppError> {
+    state.mpd.update_db().await?;
     Ok(())
 }
 
-async fn update_status() -> Result<impl IntoResponse, AppError> {
-    let updating = Mpd::connect().await?.get_status().await?.ubdating_db;
+async fn update_status(State(state): State<AppState>) -> Result<impl IntoResponse, AppError> {
+    let updating = state.mpd.get_status().await?.ubdating_db;
     let template = t::DatabaseUpdateStatusTemplate { updating };
     Ok(template)
 }
 
 async fn get_artists(
+    State(state): State<AppState>,
     Query(artists_search_query): Query<GenericQuery>,
 ) -> Result<impl IntoResponse, AppError> {
-    let artists = Mpd::connect()
-        .await?
-        .get_artists(artists_search_query.q)
-        .await?;
+    let artists = state.mpd.get_artists(artists_search_query.q).await?;
     Ok(t::ArtistsTemplate::new(artists))
 }
 
 async fn get_albums(
+    State(state): State<AppState>,
     Query(query): Query<ArtistQuery>,
     headers: HeaderMap,
 ) -> Result<impl IntoResponse, AppError> {
-    let albums = Mpd::connect().await?.get_albums(&query.artist).await?;
+    let albums = state.mpd.get_albums(&query.artist).await?;
     let tabs = t::TabsTemplate {
         library_active: true,
         ..Default::default()
@@ -187,6 +245,7 @@ async fn get_albums(
         .into_response())
     } else {
         let index = render_index(
+            &state.mpd,
             t::Page::Albums(t::AlbumsTemplate {
                 tabs: None,
                 artist: query.artist,
@@ -200,10 +259,11 @@ async fn get_albums(
 }
 
 async fn get_songs(
+    State(state): State<AppState>,
     Query(q): Query<ArtistAlbumQuery>,
     headers: HeaderMap,
 ) -> Result<impl IntoResponse, AppError> {
-    let songs = Mpd::connect().await?.get_songs(&q.artist, &q.album).await?;
+    let songs = state.mpd.get_songs(&q.artist, &q.album).await?;
     let tabs = t::TabsTemplate {
         library_active: true,
         ..Default::default()
@@ -219,6 +279,7 @@ async fn get_songs(
         .into_response())
     } else {
         let index = render_index(
+            &state.mpd,
             t::Page::Songs(t::AlbumSongsTemplate {
                 tabs: None,
                 artist: q.artist,
@@ -232,17 +293,24 @@ async fn get_songs(
     }
 }
 
-async fn render_index(page: t::Page, tabs: t::TabsTemplate) -> Result<impl IntoResponse, AppError> {
-    let error = Mpd::connect().await.err().map(|e| e.to_string());
+async fn render_index(
+    mpd: &Mpd,
+    page: t::Page,
+    tabs: t::TabsTemplate,
+) -> Result<impl IntoResponse, AppError> {
+    let error = mpd.stats().await.err().map(|e| e.to_string());
     Ok(t::IndexTemplate { error, page, tabs })
 }
 
-async fn get_index() -> Result<impl IntoResponse, AppError> {
-    get_library(HeaderMap::default()).await
+async fn get_index(
+    state: State<AppState>,
+    headers: HeaderMap,
+) -> Result<impl IntoResponse, AppError> {
+    get_library(state, headers).await
 }
 
-async fn get_status(ws: WebSocketUpgrade) -> impl IntoResponse {
-    ws.on_upgrade(handle_ws_status)
+async fn get_status(State(state): State<AppState>, ws: WebSocketUpgrade) -> impl IntoResponse {
+    ws.on_upgrade(|socket| handle_ws_status(state, socket))
 }
 
 async fn send_mpd_status(mpd: &mut Mpd, socket: &mut WebSocket) -> anyhow::Result<()> {
@@ -252,81 +320,83 @@ async fn send_mpd_status(mpd: &mut Mpd, socket: &mut WebSocket) -> anyhow::Resul
     Ok(())
 }
 
-async fn handle_ws_status(mut socket: WebSocket) {
-    let mpd = Mpd::connect().await;
-    if mpd.is_err() {
-        return;
-    }
-    let mut mpd = mpd.unwrap();
+async fn handle_ws_status(state: AppState, mut socket: WebSocket) {
+    let mut mpd = state.mpd;
+    let mut rx = state.event_tx.subscribe();
+
     if send_mpd_status(&mut mpd, &mut socket).await.is_err() {
         return;
     }
     loop {
-        let event = mpd.connection_events.next().await;
-        if event.is_none() {
+        let event = rx.recv().await;
+        if event.is_err() {
             return;
         }
         let event = event.unwrap();
 
         match event {
-            ConnectionEvent::SubsystemChange(Subsystem::Player)
-            | ConnectionEvent::SubsystemChange(Subsystem::Queue) => {
+            Subsystem::Player | Subsystem::Queue => {
                 if send_mpd_status(&mut mpd, &mut socket).await.is_err() {
                     return;
                 }
             }
-            ConnectionEvent::ConnectionClosed(_) => return,
-            ConnectionEvent::SubsystemChange(_) => {}
+            _ => {}
         }
     }
 }
 
-async fn control_play_song(Query(q): Query<SongIdQuery>) -> Result<(), AppError> {
+async fn control_play_song(
+    State(state): State<AppState>,
+    Query(q): Query<SongIdQuery>,
+) -> Result<(), AppError> {
     if let Some(song_id) = q.song_id {
-        Mpd::connect().await?.play_song(song_id).await?;
+        state.mpd.play_song(song_id).await?;
     } else {
-        Mpd::connect().await?.play().await?;
+        state.mpd.play().await?;
     }
     Ok(())
 }
 
-async fn control_pause() -> Result<(), AppError> {
-    Mpd::connect().await?.pause(true).await?;
+async fn control_pause(State(state): State<AppState>) -> Result<(), AppError> {
+    state.mpd.pause(true).await?;
     Ok(())
 }
 
-async fn control_unpause() -> Result<(), AppError> {
-    Mpd::connect().await?.pause(false).await?;
+async fn control_unpause(State(state): State<AppState>) -> Result<(), AppError> {
+    state.mpd.pause(false).await?;
     Ok(())
 }
 
-async fn control_prev() -> Result<(), AppError> {
-    Mpd::connect().await?.prev().await?;
+async fn control_prev(State(state): State<AppState>) -> Result<(), AppError> {
+    state.mpd.prev().await?;
     Ok(())
 }
 
-async fn control_next() -> Result<(), AppError> {
-    Mpd::connect().await?.next().await?;
+async fn control_next(State(state): State<AppState>) -> Result<(), AppError> {
+    state.mpd.next().await?;
     Ok(())
 }
 
-async fn clear_playlist() -> Result<(), AppError> {
-    Mpd::connect().await?.clear_playlist().await?;
+async fn clear_playlist(State(state): State<AppState>) -> Result<(), AppError> {
+    state.mpd.clear_playlist().await?;
     Ok(())
 }
 
-async fn toggle_random() -> Result<(), AppError> {
-    Mpd::connect().await?.toggle_random().await?;
+async fn toggle_random(State(state): State<AppState>) -> Result<(), AppError> {
+    state.mpd.toggle_random().await?;
     Ok(())
 }
 
-async fn toggle_repeat() -> Result<(), AppError> {
-    Mpd::connect().await?.toggle_repeat().await?;
+async fn toggle_repeat(State(state): State<AppState>) -> Result<(), AppError> {
+    state.mpd.toggle_repeat().await?;
     Ok(())
 }
 
-async fn get_playlist_songs(ws: WebSocketUpgrade) -> impl IntoResponse {
-    ws.on_upgrade(handle_ws_playlist)
+async fn get_playlist_songs(
+    State(state): State<AppState>,
+    ws: WebSocketUpgrade,
+) -> impl IntoResponse {
+    ws.on_upgrade(|socket| handle_ws_playlist(state, socket))
 }
 
 async fn send_playlist(mpd: &Mpd, socket: &mut WebSocket) -> anyhow::Result<()> {
@@ -342,38 +412,35 @@ async fn send_playlist(mpd: &Mpd, socket: &mut WebSocket) -> anyhow::Result<()> 
     Ok(())
 }
 
-async fn handle_ws_playlist(mut socket: WebSocket) {
-    let mpd = Mpd::connect().await;
-    if mpd.is_err() {
-        return;
-    }
-    let mut mpd = mpd.unwrap();
+async fn handle_ws_playlist(state: AppState, mut socket: WebSocket) {
+    let mpd = state.mpd;
+    let mut rx = state.event_tx.subscribe();
 
     if send_playlist(&mpd, &mut socket).await.is_err() {
         return;
     }
     loop {
-        let event = mpd.connection_events.next().await;
-        if event.is_none() {
+        let event = rx.recv().await;
+        if event.is_err() {
             return;
         }
         let event = event.unwrap();
 
         match event {
-            ConnectionEvent::SubsystemChange(Subsystem::Player)
-            | ConnectionEvent::SubsystemChange(Subsystem::Queue)
-            | ConnectionEvent::SubsystemChange(Subsystem::Options) => {
+            Subsystem::Player | Subsystem::Queue | Subsystem::Options => {
                 if send_playlist(&mpd, &mut socket).await.is_err() {
                     return;
                 }
             }
-            ConnectionEvent::ConnectionClosed(_) => return,
-            ConnectionEvent::SubsystemChange(_) => {}
+            _ => {}
         }
     }
 }
 
-async fn get_playlist(headers: HeaderMap) -> Result<impl IntoResponse, AppError> {
+async fn get_playlist(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+) -> Result<impl IntoResponse, AppError> {
     let tabs = t::TabsTemplate {
         playlist_active: true,
         ..Default::default()
@@ -382,64 +449,74 @@ async fn get_playlist(headers: HeaderMap) -> Result<impl IntoResponse, AppError>
     if headers.contains_key("HX-Request") {
         Ok(t::PlaylistTemplate { tabs: Some(tabs) }.into_response())
     } else {
-        let index =
-            render_index(t::Page::Playlist(t::PlaylistTemplate { tabs: None }), tabs).await?;
+        let index = render_index(
+            &state.mpd,
+            t::Page::Playlist(t::PlaylistTemplate { tabs: None }),
+            tabs,
+        )
+        .await?;
         Ok(index.into_response())
     }
 }
 
-async fn append_album(Query(q): Query<ArtistAlbumQuery>) -> Result<(), AppError> {
-    Mpd::connect()
-        .await?
+async fn append_album(
+    State(state): State<AppState>,
+    Query(q): Query<ArtistAlbumQuery>,
+) -> Result<(), AppError> {
+    state
+        .mpd
         .append_album_to_playlist(&q.artist, &q.album)
         .await?;
     Ok(())
 }
 
-async fn play_album(Query(q): Query<ArtistAlbumQuery>) -> Result<(), AppError> {
-    Mpd::connect()
-        .await?
-        .play_album(&q.artist, &q.album)
-        .await?;
+async fn play_album(
+    State(state): State<AppState>,
+    Query(q): Query<ArtistAlbumQuery>,
+) -> Result<(), AppError> {
+    state.mpd.play_album(&q.artist, &q.album).await?;
     Ok(())
 }
 
-async fn play_song_by_url(Query(url_query): Query<UrlQuery>) -> Result<(), AppError> {
-    Mpd::connect()
-        .await?
-        .play_song_by_url(&url_query.url)
-        .await?;
+async fn play_song_by_url(
+    State(state): State<AppState>,
+    Query(url_query): Query<UrlQuery>,
+) -> Result<(), AppError> {
+    state.mpd.play_song_by_url(&url_query.url).await?;
     Ok(())
 }
 
-async fn append_song_by_url(Query(url_query): Query<UrlQuery>) -> Result<(), AppError> {
-    Mpd::connect()
-        .await?
-        .append_song_by_url(&url_query.url)
-        .await?;
+async fn append_song_by_url(
+    State(state): State<AppState>,
+    Query(url_query): Query<UrlQuery>,
+) -> Result<(), AppError> {
+    state.mpd.append_song_by_url(&url_query.url).await?;
     Ok(())
 }
 
-async fn remove_song_by_id(Query(q): Query<SongIdQuery>) -> Result<(), AppError> {
+async fn remove_song_by_id(
+    State(state): State<AppState>,
+    Query(q): Query<SongIdQuery>,
+) -> Result<(), AppError> {
     if let Some(song_id) = q.song_id {
-        Mpd::connect().await?.remove_from_playlist(song_id).await?;
+        state.mpd.remove_from_playlist(song_id).await?;
     }
     Ok(())
 }
 
 async fn get_cover(
+    State(state): State<AppState>,
     Query(q): Query<ArtistAlbumQuery>,
-    State(cache): State<Arc<Mutex<AlbumArtCache>>>,
 ) -> Result<Vec<u8>, AppError> {
     let cache_key = (q.artist.clone(), q.album.clone());
-    let mut cache = cache.lock().await;
+    let mut cache = state.album_art_cache.lock().await;
 
     if let Some(cached) = cache.cache.get(&cache_key) {
         tracing::debug!(target: "album_art", "returning cached value for {}-{}", q.artist, q.album);
         return Ok(cached.clone());
     }
 
-    let art = Mpd::connect().await?.album_art(&q.artist, &q.album).await?;
+    let art = state.mpd.album_art(&q.artist, &q.album).await?;
 
     let old_val = cache.cache.insert(cache_key.clone(), art.clone());
     if old_val.is_none() {
@@ -457,7 +534,10 @@ async fn get_cover(
     Ok(art)
 }
 
-async fn get_now_playing(headers: HeaderMap) -> Result<impl IntoResponse, AppError> {
+async fn get_now_playing(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+) -> Result<impl IntoResponse, AppError> {
     let tabs = t::TabsTemplate {
         now_playing_active: true,
         ..Default::default()
@@ -467,6 +547,7 @@ async fn get_now_playing(headers: HeaderMap) -> Result<impl IntoResponse, AppErr
         Ok(t::NowPlayingTemplate { tabs: Some(tabs) }.into_response())
     } else {
         let index = render_index(
+            &state.mpd,
             t::Page::NowPlaying(t::NowPlayingTemplate { tabs: None }),
             tabs,
         )
@@ -475,16 +556,15 @@ async fn get_now_playing(headers: HeaderMap) -> Result<impl IntoResponse, AppErr
     }
 }
 
-async fn get_now_playing_content(ws: WebSocketUpgrade) -> impl IntoResponse {
-    ws.on_upgrade(handle_ws_now_playing)
+async fn get_now_playing_content(
+    State(state): State<AppState>,
+    ws: WebSocketUpgrade,
+) -> impl IntoResponse {
+    ws.on_upgrade(|socket| handle_ws_now_playing(state, socket))
 }
 
-async fn handle_ws_now_playing(mut socket: WebSocket) {
-    let mpd = Mpd::connect().await;
-    if mpd.is_err() {
-        return;
-    }
-    let mpd = mpd.unwrap();
+async fn handle_ws_now_playing(state: AppState, mut socket: WebSocket) {
+    let mpd = state.mpd;
 
     loop {
         if send_now_playing_content(&mpd, &mut socket).await.is_err() {
