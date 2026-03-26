@@ -13,6 +13,7 @@ use axum::{
 };
 use mpd::Mpd;
 use mpd_client::client::{ConnectionEvent, Subsystem};
+use rand::Rng;
 use serde::Deserialize;
 use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;
@@ -75,6 +76,7 @@ async fn main() {
         .route("/albums", get(get_albums))
         .route("/songs", get(get_songs))
         .route("/status", get(get_status))
+        .route("/background-tint", get(background_tint))
         .route("/control/play", get(control_play_song))
         .route("/control/unpause", get(control_unpause))
         .route("/control/pause", get(control_pause))
@@ -245,6 +247,10 @@ async fn get_status(ws: WebSocketUpgrade) -> impl IntoResponse {
     ws.on_upgrade(handle_ws_status)
 }
 
+async fn background_tint(ws: WebSocketUpgrade) -> impl IntoResponse {
+    ws.on_upgrade(handle_background_tint)
+}
+
 async fn send_mpd_status(mpd: &mut Mpd, socket: &mut WebSocket) -> anyhow::Result<()> {
     let mpd_status = mpd.get_status().await?;
     let template = t::StatusTemplate { status: mpd_status }.render()?;
@@ -278,6 +284,25 @@ async fn handle_ws_status(mut socket: WebSocket) {
             ConnectionEvent::ConnectionClosed(_) => return,
             ConnectionEvent::SubsystemChange(_) => {}
         }
+    }
+}
+
+async fn handle_background_tint(mut socket: WebSocket) {
+    // let mpd = Mpd::connect().await;
+    // let mpd = mpd.unwrap();
+    loop {
+        // mpd.album_art(artist, album)
+        let template = t::BackgroundTintTemplate {
+            r: rand::thread_rng().gen_range(0..255),
+            g: rand::thread_rng().gen_range(0..255),
+            b: rand::thread_rng().gen_range(0..255),
+        }
+        .render()
+        .unwrap();
+        if socket.send(template.into()).await.is_err() {
+            return;
+        }
+        tokio::time::sleep(tokio::time::Duration::new(1, 0)).await;
     }
 }
 

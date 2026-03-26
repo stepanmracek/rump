@@ -96,6 +96,14 @@ pub struct StatusTemplate {
 }
 
 #[derive(Template)]
+#[template(path = "background_tint.html")]
+pub struct BackgroundTintTemplate {
+    pub r: u8,
+    pub g: u8,
+    pub b: u8,
+}
+
+#[derive(Template)]
 #[template(path = "playlist.html")]
 pub struct PlaylistTemplate {
     pub tabs: Option<TabsTemplate>,

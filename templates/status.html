@@ -1,4 +1,6 @@
-<div id="statusbar">
+<div id="statusbar" hx-ws="connect:/background-tint">
+    <style id="background-tint">
+    </style>
     <button class="skip" {% if !status.has_prev %}disabled{% endif %} hx-get="/control/prev" hx-swap="none">
         <i class="fa-solid fa-backward-step"></i>
     </button>

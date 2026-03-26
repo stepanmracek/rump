@@ -1177,6 +1177,7 @@ dependencies = [
  "image",
  "itertools",
  "mpd_client",
+ "rand",
  "serde",
  "serde_json",
  "tokio",
