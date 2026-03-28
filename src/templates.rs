@@ -93,6 +93,34 @@ pub struct AlbumsTemplate {
 #[template(path = "status.html")]
 pub struct StatusTemplate {
     pub status: Status,
+    pub background: Background,
+}
+
+#[derive(Clone, Copy)]
+pub struct Background {
+    pub r: u8,
+    pub g: u8,
+    pub b: u8,
+}
+
+impl Background {
+    pub fn from_floats(f: &[f32; 3]) -> Self {
+        Self {
+            r: (f[0] * 255.0).round() as u8,
+            g: (f[1] * 255.0).round() as u8,
+            b: (f[2] * 255.0).round() as u8,
+        }
+    }
+}
+
+impl Default for Background {
+    fn default() -> Self {
+        Self {
+            r: 255,
+            g: 182,
+            b: 193,
+        }
+    }
 }
 
 #[derive(Template)]

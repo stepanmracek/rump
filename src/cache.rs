@@ -1,5 +1,11 @@
 use bytes::Bytes;
-use std::collections::{HashMap, VecDeque};
+use std::{
+    collections::{HashMap, VecDeque},
+    sync::Arc,
+};
+use tokio::sync::Mutex;
+
+use crate::{error::AppError, mpd::Mpd};
 
 pub struct AlbumArtCache {
     cache: HashMap<(String, String), Bytes>,
@@ -31,4 +37,27 @@ impl AlbumArtCache {
             }
         }
     }
+}
+
+pub async fn get_set(
+    key: (String, String),
+    album_art_cache: Arc<Mutex<AlbumArtCache>>,
+    mpd: &Mpd,
+) -> Result<Bytes, AppError> {
+    {
+        let cache = album_art_cache.lock().await;
+        if let Some(cached) = cache.get(&key) {
+            tracing::debug!(target: "album_art", "returning cached value for {}-{}", key.0, key.1);
+            return Ok(cached);
+        }
+    }
+
+    let art = mpd.album_art(&key.0, &key.1).await?;
+
+    {
+        let mut cache = album_art_cache.lock().await;
+        cache.set(key, art.clone());
+    }
+
+    Ok(art)
 }

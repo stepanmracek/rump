@@ -1,4 +1,10 @@
 <div id="statusbar">
+    <style>
+        body {
+            background-color: rgb({{background.r}}, {{background.g}}, {{background.b}});
+        }
+    </style>
+
     <button class="skip" {% if !status.has_prev %}disabled{% endif %} hx-get="/control/prev" hx-swap="none">
         <i class="fa-solid fa-backward-step"></i>
     </button>

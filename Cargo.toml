@@ -14,10 +14,11 @@ serde_json = "1"
 askama = { version = "0.12.1", features = ["with-axum"] }
 tower-http = { version = "0.5.1", features = ["fs", "trace"] }
 anyhow = "1.0.79"
-image = "0.24.8"
+image = "0.25.10"
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 chrono = "0.4.33"
 askama_axum = "0.4.0"
 bytes = "1.5.0"
 itertools = "0.12.1"
+dominant-color-rs = "0.1.1"
