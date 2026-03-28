@@ -504,9 +504,9 @@ dependencies = [
 
 [[package]]
 name = "dominant-color-rs"
-version = "0.1.1"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "816dd1b93f59806b912b50b2b0cdf043778a365041bda82a776679f3cf54fe11"
+checksum = "d445731ee55e306e15f231f38d520de75d59511f0830043a329c3371ed4dd87f"
 dependencies = [
  "image",
  "rand 0.10.0",

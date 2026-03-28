@@ -18,7 +18,7 @@ async fn handle_ws_status(state: AppState, mut socket: WebSocket) {
     let mut mpd = state.mpd;
     let mut rx = state.event_tx.subscribe();
 
-    let mut last_background: Option<(Option<(String, String)>, t::Background)> = None;
+    let mut last_background: Option<(Option<(String, String)>, t::Gradient)> = None;
 
     if send_mpd_status(
         &mut mpd,
@@ -62,7 +62,7 @@ async fn send_mpd_status(
     mpd: &mut Mpd,
     album_art_cache: Arc<Mutex<AlbumArtCache>>,
     socket: &mut WebSocket,
-    last_background: &mut Option<(Option<(String, String)>, t::Background)>,
+    last_background: &mut Option<(Option<(String, String)>, t::Gradient)>,
 ) -> anyhow::Result<()> {
     let mpd_status = mpd.get_status().await?;
 
@@ -93,25 +93,36 @@ async fn background_color(
     album_art_key: Option<(String, String)>,
     album_art_cache: Arc<Mutex<AlbumArtCache>>,
     mpd: &Mpd,
-) -> t::Background {
+) -> t::Gradient {
     match album_art_key {
         Some(key) => {
-            tracing::info!("dominant color for {key:?} start");
-            let cover_bytes = get_set(key, album_art_cache, mpd).await;
+            let cover_bytes = get_set(key.clone(), album_art_cache, mpd).await;
 
             match cover_bytes {
                 Ok(cover_bytes) => {
                     let cover_img = image::load_from_memory(&cover_bytes).unwrap();
-                    dominant_color_rs::dominant_color(
+                    let colors = dominant_color_rs::dominant_colors(
                         &cover_img,
                         &dominant_color_rs::Settings::default(),
-                    )
-                    .map(|f| t::Background::from_floats(&f))
-                    .unwrap_or_default()
+                    );
+
+                    tracing::debug!("dominant colors for {key:?}: {colors:?}");
+
+                    match colors.len() {
+                        0 => t::Gradient::default(),
+                        1 => t::Gradient {
+                            start: t::Color::from_floats(&colors[0]),
+                            end: t::Color::default(),
+                        },
+                        _ =>t::Gradient {
+                            start: t::Color::from_floats(&colors[0]),
+                            end: t::Color::from_floats(&colors[1]),
+                        }
+                    }
                 }
-                _ => t::Background { r: 255, g: 0, b: 0 },
+                _ => t::Gradient::default(),
             }
         }
-        _ => t::Background::default(),
+        _ => t::Gradient::default(),
     }
 }
