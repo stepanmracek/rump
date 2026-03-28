@@ -107,7 +107,7 @@ async fn background_color(
                         &dominant_color_rs::Settings::default(),
                     )
                     .map(|f| t::Background::from_floats(&f))
-                    .unwrap_or(t::Background::default())
+                    .unwrap_or_default()
                 }
                 _ => t::Background { r: 255, g: 0, b: 0 },
             }
