@@ -114,10 +114,10 @@ async fn background_color(
                             start: t::Color::from_floats(&colors[0]),
                             end: t::Color::default(),
                         },
-                        _ =>t::Gradient {
+                        _ => t::Gradient {
                             start: t::Color::from_floats(&colors[0]),
                             end: t::Color::from_floats(&colors[1]),
-                        }
+                        },
                     }
                 }
                 _ => t::Gradient::default(),
