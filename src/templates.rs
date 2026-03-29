@@ -119,7 +119,7 @@ impl Default for Gradient {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Default)]
 pub struct Color {
     pub r: u8,
     pub g: u8,
@@ -133,12 +133,6 @@ impl Color {
             g: (f[1] * 255.0).round() as u8,
             b: (f[2] * 255.0).round() as u8,
         }
-    }
-}
-
-impl Default for Color {
-    fn default() -> Self {
-        Self { r: 0, g: 0, b: 0 }
     }
 }
 
