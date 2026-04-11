@@ -6,6 +6,7 @@
                 {{song.artist}} - {{song.title}}
             </a>
             <a href="#" hx-get="/playlist/remove/song?song_id={{song.id|urlencode_strict}}" hx-swap="none">
+                <style>.playlist div .fa-trash-can:not(:hover) { opacity: 0.3; }</style>
                 <i class="fa-solid fa-trash-can"></i>
             </a>
         </div>
