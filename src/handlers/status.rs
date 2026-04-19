@@ -101,10 +101,14 @@ async fn background_color(
             match cover_bytes {
                 Ok(cover_bytes) => {
                     let cover_img = image::load_from_memory(&cover_bytes).unwrap();
-                    let colors = dominant_color_rs::dominant_colors(
-                        &cover_img,
-                        &dominant_color_rs::Settings::default(),
-                    );
+                    let settings = dominant_color_rs::Settings {
+                        img_size: 64,
+                        max_iters: 50,
+                        eps: 1e-4,
+                        clusters: 2..=5,
+                        ..Default::default()
+                    };
+                    let colors = dominant_color_rs::dominant_colors(&cover_img, &settings);
 
                     tracing::debug!("dominant colors for {key:?}: {colors:?}");
 
