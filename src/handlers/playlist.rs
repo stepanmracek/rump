@@ -46,11 +46,10 @@ async fn handle_ws_playlist(state: AppState, mut socket: WebSocket) {
         let event = event.unwrap();
 
         match event {
-            Subsystem::Player | Subsystem::Queue | Subsystem::Options => {
-                if send_playlist(&mpd, &mut socket).await.is_err() {
+            Subsystem::Player | Subsystem::Queue | Subsystem::Options
+                if send_playlist(&mpd, &mut socket).await.is_err() => {
                     return;
                 }
-            }
             _ => {}
         }
     }

@@ -40,7 +40,7 @@ async fn handle_ws_status(state: AppState, mut socket: WebSocket) {
         let event = event.unwrap();
 
         match event {
-            Subsystem::Player | Subsystem::Queue => {
+            Subsystem::Player | Subsystem::Queue
                 if send_mpd_status(
                     &mut mpd,
                     state.album_art_cache.clone(),
@@ -49,10 +49,9 @@ async fn handle_ws_status(state: AppState, mut socket: WebSocket) {
                 )
                 .await
                 .is_err()
-                {
+                => {
                     return;
                 }
-            }
             _ => {}
         }
     }
