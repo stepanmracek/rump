@@ -45,12 +45,8 @@ pub struct TabsTemplate {
 #[template(path = "library.html")]
 pub struct LibraryTemplate {
     pub tabs: Option<TabsTemplate>,
-}
-
-#[derive(Template)]
-#[template(path = "artists.html")]
-pub struct ArtistsTemplate {
     pub artists: Vec<(char, Vec<String>)>,
+    pub query: String,
 }
 
 fn first_letter(s: &str) -> char {
@@ -62,8 +58,12 @@ fn first_letter(s: &str) -> char {
         .unwrap_or_default()
 }
 
-impl ArtistsTemplate {
-    pub fn new(artists_vec: Vec<String>) -> Self {
+impl LibraryTemplate {
+    pub fn new(
+        tabs: Option<TabsTemplate>,
+        artists_vec: Vec<String>,
+        query: Option<String>,
+    ) -> Self {
         let mut artists_vec = artists_vec.clone();
         artists_vec.sort_by_key(|a| a.to_lowercase());
 
@@ -77,7 +77,11 @@ impl ArtistsTemplate {
                 .map(|(key, group)| (key, group.collect_vec()))
                 .collect_vec()
         };
-        ArtistsTemplate { artists }
+        Self {
+            tabs,
+            artists,
+            query: query.unwrap_or_default(),
+        }
     }
 }
 

@@ -103,11 +103,11 @@ impl Mpd {
         Ok((mpd_client, connection_events))
     }
 
-    pub async fn get_artists(&self, name_filter: Option<String>) -> Result<Vec<String>> {
+    pub async fn get_artists(&self, name_filter: &Option<String>) -> Result<Vec<String>> {
         let cmd = mpd_client::commands::List::new(mpd_client::tag::Tag::Artist);
         let response = self.client.read().await.command(cmd).await?;
 
-        let name_filter = name_filter.map(|v| v.to_lowercase());
+        let name_filter = name_filter.as_ref().map(|v| v.to_lowercase());
         Ok(response
             .into_iter()
             .filter(|artist| {

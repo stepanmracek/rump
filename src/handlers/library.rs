@@ -9,6 +9,7 @@ use axum::response::IntoResponse;
 
 pub async fn get_library(
     State(state): State<AppState>,
+    Query(artists_search_query): Query<GenericQuery>,
     headers: HeaderMap,
 ) -> Result<impl IntoResponse, AppError> {
     let tabs = t::TabsTemplate {
@@ -16,25 +17,20 @@ pub async fn get_library(
         ..Default::default()
     };
 
+    let query = artists_search_query.q;
+    let artists = state.mpd.get_artists(&query).await?;
+
     if headers.contains_key("HX-Request") {
-        Ok(t::LibraryTemplate { tabs: Some(tabs) }.into_response())
+        Ok(t::LibraryTemplate::new(Some(tabs), artists, query).into_response())
     } else {
         let index = render_index(
             &state.mpd,
-            t::Page::Library(t::LibraryTemplate { tabs: None }),
+            t::Page::Library(t::LibraryTemplate::new(None, artists, query)),
             tabs,
         )
         .await?;
         Ok(index.into_response())
     }
-}
-
-pub async fn get_artists(
-    State(state): State<AppState>,
-    Query(artists_search_query): Query<GenericQuery>,
-) -> Result<impl IntoResponse, AppError> {
-    let artists = state.mpd.get_artists(artists_search_query.q).await?;
-    Ok(t::ArtistsTemplate::new(artists))
 }
 
 pub async fn get_albums(
@@ -116,7 +112,8 @@ pub async fn render_index(
 
 pub async fn get_index(
     state: State<AppState>,
+    artists_search_query: Query<GenericQuery>,
     headers: HeaderMap,
 ) -> Result<impl IntoResponse, AppError> {
-    get_library(state, headers).await
+    get_library(state, artists_search_query, headers).await
 }

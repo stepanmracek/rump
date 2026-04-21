@@ -4,6 +4,15 @@
 {% when None %}
 {% endmatch %}
 
-<input name="q" placeholder="search" hx-get="/artists" hx-trigger="keyup changed delay:500ms" hx-target="#artists">
+<input name="q" value="{{query}}" placeholder="search" hx-get="/library" hx-trigger="keyup changed delay:500ms" hx-push-url="true" hx-target="#artists" hx-select="#artists" hx-swap="outerHTML">
 
-<div id="artists" class="artists" hx-get="/artists" hx-trigger="load"></div>
+<div id="artists" class="artists">
+    {% for (letter, vec) in artists %}
+    <h1>{{letter}}</h1>
+    {% for artist in vec %}
+    <a href="#" hx-get="/albums?artist={{artist|urlencode_strict}}" hx-push-url="true" hx-target="#content">
+        {{artist}}
+    </a>
+    {% endfor %}
+    {% endfor %}
+</div>

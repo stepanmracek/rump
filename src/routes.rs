@@ -7,7 +7,6 @@ pub fn create_router(state: AppState) -> Router {
     Router::new()
         .route("/", get(library::get_index))
         .route("/library", get(library::get_library))
-        .route("/artists", get(library::get_artists))
         .route("/albums", get(library::get_albums))
         .route("/songs", get(library::get_songs))
         .route("/status", get(status::get_status))
