@@ -48,10 +48,10 @@ async fn handle_ws_status(state: AppState, mut socket: WebSocket) {
                     &mut last_background,
                 )
                 .await
-                .is_err()
-                => {
-                    return;
-                }
+                .is_err() =>
+            {
+                return;
+            }
             _ => {}
         }
     }
