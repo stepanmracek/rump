@@ -125,12 +125,12 @@ impl Mpd {
             mpd_client::filter::Filter::new(
                 mpd_client::tag::Tag::Artist,
                 mpd_client::filter::Operator::Equal,
-                artist,
+                artist.replace("\"", "\\\""),
             )
             .and(mpd_client::filter::Filter::new(
                 mpd_client::tag::Tag::Album,
                 mpd_client::filter::Operator::Equal,
-                album,
+                album.replace("\"", "\\\""),
             )),
         );
         let mut result = self.client.read().await.command(cmd).await?;
@@ -191,7 +191,7 @@ impl Mpd {
                     mpd_client::filter::Filter::new(
                         mpd_client::tag::Tag::Artist,
                         mpd_client::filter::Operator::Equal,
-                        artist,
+                        artist.replace("\"", "\\\""),
                     ),
                 ),
             )
