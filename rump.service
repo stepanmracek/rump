@@ -6,11 +6,11 @@ After=remote-fs.target network.target
 WantedBy=multi-user.target
 
 [Service]
-User=pi
-Group=pi
+User=stepo
+Group=stepo
 Type=simple
-ExecStart=/home/pi/rump/rump
-WorkingDirectory=/home/pi/rump/
+ExecStart=/home/stepo/rump/rump
+WorkingDirectory=/home/stepo/rump/
 TimeoutStopSec=5
 KillMode=process
 Restart=on-failure

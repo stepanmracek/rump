@@ -3,8 +3,8 @@
 set -xu
 
 REMOTE_HOST=$1
-REMOTE_USER=pi
-REMOTE_DIR=/home/pi/rump/
+REMOTE_USER=stepo
+REMOTE_DIR=/home/stepo/rump/
 
 ~/.cargo/bin/cross build --target armv7-unknown-linux-gnueabihf --release
 
